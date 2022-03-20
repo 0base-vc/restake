@@ -11,6 +11,16 @@ import {
 } from 'react-bootstrap';
 
 import networksData from '../networks.json';
+import localNetworksData from '../networks.local.json';
+
+const overrideNetworksData = (() => {
+  try {
+    return overrideNetworks(networksData, localNetworksData)
+  } catch (e){
+    console.log(e);
+    return networksData;
+  }
+})();
 
 function NetworkFinder() {
   const params = useParams();
@@ -26,7 +36,7 @@ function NetworkFinder() {
       .then(res => res.data)
       .then(data => data.reduce((a, v) => ({ ...a, [v.directory]: v}), {}))
 
-    const networks = networksData.filter(el => el.enabled !== false).map(data => {
+    const networks = overrideNetworksData.filter(el => el.enabled !== false).map(data => {
       const registryData = registryNetworks[data.name] || {}
       return {...registryData, ...data}
     })
