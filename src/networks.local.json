@@ -1,0 +1,71 @@
+{
+  "agoric": {
+    "testAddress": "agoric1cwe4fgnmvdzx6kefxs8alldtwhywctnxt7mdr5",
+    "ownerAddress": "agoricvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4acufxj"
+  },
+  "akash": {
+    "testAddress": "akash1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy6chyhw",
+    "ownerAddress": "akashvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4cyw7r4"
+  },
+  "axelar": {
+    "testAddress": "axelar1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyndvt94",
+    "ownerAddress": "axelarvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4mjdjnt"
+  },
+  "cerberus": {
+    "testAddress": "cerberus1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyty62ml",
+    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0"
+  },
+  "chihuahua": {
+    "testAddress": "chihuahua1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy5khd0k",
+    "ownerAddress": "chihuahuavaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9sj52r2y"
+  },
+  "cosmoshub": {
+    "testAddress": "cosmos1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyhr6rw5",
+    "ownerAddress": "cosmosvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q46fe2xk"
+  },
+  "evmos": {
+    "testAddress": "evmos1w2v6ztzta7hra7q3j3g6g363tqnh02th0mauj3",
+    "ownerAddress": "evmosvaloper1rh9uz23gmhr6q92a45qrath4fr9ffefz4eas0z"
+  },
+  "gravitybridge": {
+    "testAddress": "gravity1jrjdqzxchlt09gj6qvn4ds8suxh9aqwynngmtu",
+    "ownerAddress": "gravityvaloper1h4w306x3tm39gas6evu326c9ycxwrvk4drnv5t"
+  },
+  "impacthub": {
+    "testAddress": "ixo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygky328",
+    "ownerAddress": "ixovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q42frukn"
+  },
+  "juno": {
+    "testAddress": "juno1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyp3ecfg",
+    "ownerAddress": "junovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4kjctkq"
+  },
+  "osmosis": {
+    "testAddress": "osmo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwylcfncx",
+    "ownerAddress": "osmovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d3kvts"
+  },
+  "regen": {
+    "testAddress": "regen1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygp3lcs",
+    "ownerAddress": "regenvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ucmxys"
+  },
+  "rizon": {
+    "testAddress": "rizon1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy57xjzv",
+    "ownerAddress": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd"
+  },
+  "sifchain": {
+    "testAddress": "sif1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyj744pl",
+    "ownerAddress": "sifvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4nz2r97"
+  },
+  "stargaze": {
+    "testAddress": "stars1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyrld799",
+    "ownerAddress": "starsvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4qlwk6v"
+  },
+  "terra": {
+    "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
+    "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy"
+  },
+  "umee": {
+    "testAddress": "umee1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy948u2x",
+    "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la"
+  }
+
+}
