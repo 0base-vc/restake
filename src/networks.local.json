@@ -70,6 +70,8 @@
   "umee": {
     "testAddress": "umee1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy948u2x",
     "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la"
+  },
+  "desmos": {
+    "enabled": false
   }
-
 }
