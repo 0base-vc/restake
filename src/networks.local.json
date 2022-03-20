@@ -21,7 +21,11 @@
   },
   "cosmoshub": {
     "testAddress": "cosmos1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyhr6rw5",
-    "ownerAddress": "cosmosvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q46fe2xk"
+    "ownerAddress": "cosmosvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q46fe2xk",
+    "restUrl": [
+      "https://lcd-cosmoshub.blockapsis.com",
+      "https://rest.cosmos.directory"
+    ]
   },
   "evmos": {
     "testAddress": "evmos1w2v6ztzta7hra7q3j3g6g363tqnh02th0mauj3",
