@@ -22,6 +22,7 @@ import Logo2x from '../assets/logo@2x.png'
 import Logo3x from '../assets/logo@3x.png'
 
 import PoweredByAkash from '../assets/powered-by-akash.svg'
+import Zerobasevc from '../assets/0base_vc_logo.svg'
 
 class App extends React.Component {
   constructor(props) {
@@ -318,8 +319,8 @@ class App extends React.Component {
           </p>
         </div>
         <footer className="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-          <a href="https://akash.network" target="_blank" rel="noreferrer" className="col-md-4 mb-0 text-muted">
-            <img src={PoweredByAkash} alt="Powered by Akash" width={200} />
+          <a href="https://0base.vc" target="_blank" rel="noreferrer" className="col-md-4 mb-0 text-muted">
+            <img src={Zerobasevc} alt="0base.vc" width={200} />
           </a>
 
           <a href="https://ecostake.com" target="_blank" rel="noreferrer" className="col-md-4 d-flex align-items-center justify-content-center me-lg-auto link-dark text-decoration-none">
