@@ -13,7 +13,13 @@
   },
   "cerberus": {
     "testAddress": "cerberus1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyty62ml",
-    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0"
+    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0",
+    "restUrl": [
+      "https://cerberus-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://cerberus-rpc.0base.dev"
+    ]
   },
   "chihuahua": {
     "testAddress": "chihuahua1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy5khd0k",
