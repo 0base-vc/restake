@@ -13,10 +13,7 @@
   },
   "cerberus": {
     "testAddress": "cerberus1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyty62ml",
-    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0",
-    "restUrl": [
-      "https://lcd-cerberus.cosmostation.io"
-    ]
+    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0"
   },
   "chihuahua": {
     "testAddress": "chihuahua1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy5khd0k",
