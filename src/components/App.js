@@ -22,6 +22,7 @@ import Logo2x from '../assets/logo@2x.png'
 import Logo3x from '../assets/logo@3x.png'
 
 import PoweredByAkash from '../assets/powered-by-akash.svg'
+import Zerobasevc from '../assets/0base_vc_logo.svg'
 
 class App extends React.Component {
   constructor(props) {
@@ -175,7 +176,7 @@ class App extends React.Component {
         <header className="d-flex flex-wrap justify-content-between py-3 mb-4 border-bottom">
           <div className="logo d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none">
             <span onClick={() => this.setState({showAbout: true})} role="button" className="text-dark text-decoration-none">
-              <img src={Logo} srcSet={`${Logo2x} 2x, ${Logo3x} 3x`} alt="REStake" />
+              <img src={Logo} srcSet={`${Logo2x} 2x, ${Logo3x} 3x`} alt="REStake" /> by 0base.vc
             </span>
           </div>
           {this.state.address &&
@@ -255,8 +256,8 @@ class App extends React.Component {
           </p>
         </div>
         <footer className="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-          <a href="https://akash.network" target="_blank" rel="noreferrer" className="col-md-4 mb-0 text-muted">
-            <img src={PoweredByAkash} alt="Powered by Akash" width={200} />
+          <a href="https://0base.vc" target="_blank" rel="noreferrer" className="col-md-4 mb-0 text-muted">
+            <img src={Zerobasevc} alt="0base.vc" width={200} />
           </a>
 
           <a href="https://ecostake.com" target="_blank" rel="noreferrer" className="col-md-4 d-flex align-items-center justify-content-center me-lg-auto link-dark text-decoration-none">

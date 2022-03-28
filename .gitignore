@@ -1,4 +1,4 @@
-src/networks.local.json
+# src/networks.local.json
 scripts/*
 !scripts/autostake.mjs
 !scripts/base.mjs
@@ -32,3 +32,6 @@ yarn-error.log*
 dist/
 .cache
 .parcel-cache/
+# ignore node_modules symlink
+node_modules
+node_modules.nosync
