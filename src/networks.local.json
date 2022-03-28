@@ -13,7 +13,13 @@
   },
   "cerberus": {
     "testAddress": "cerberus1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyty62ml",
-    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0"
+    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0",
+    "restUrl": [
+      "https://cerberus-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://cerberus-rpc.0base.dev"
+    ]
   },
   "chihuahua": {
     "testAddress": "chihuahua1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy5khd0k",
@@ -23,8 +29,10 @@
     "testAddress": "cosmos1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyhr6rw5",
     "ownerAddress": "cosmosvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q46fe2xk",
     "restUrl": [
-      "https://lcd-cosmoshub.blockapsis.com",
-      "https://rest.cosmos.directory/cosmoshub"
+      "https://cosmoshub-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://cosmoshub-rpc.0base.dev"
     ]
   },
   "evmos": {
@@ -41,15 +49,33 @@
   },
   "juno": {
     "testAddress": "juno1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyp3ecfg",
-    "ownerAddress": "junovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4kjctkq"
+    "ownerAddress": "junovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4kjctkq",
+    "restUrl": [
+      "https://juno-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://juno-rpc.0base.dev"
+    ]
   },
   "osmosis": {
     "testAddress": "osmo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwylcfncx",
-    "ownerAddress": "osmovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d3kvts"
+    "ownerAddress": "osmovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d3kvts",
+    "restUrl": [
+      "https://osmosis-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://osmosis-rpc.0base.dev"
+    ]
   },
   "regen": {
     "testAddress": "regen1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygp3lcs",
-    "ownerAddress": "regenvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ucmxys"
+    "ownerAddress": "regenvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ucmxys",
+    "restUrl": [
+      "https://regen-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://regen-rpc.0base.dev"
+    ]
   },
   "rizon": {
     "testAddress": "rizon1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy57xjzv",
