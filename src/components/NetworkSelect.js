@@ -1,7 +1,6 @@
 import React, { useState, useReducer, useEffect } from 'react';
 
 import Network from '../utils/Network.mjs'
-import ValidatorImage from './ValidatorImage'
 
 import {
   Button,
@@ -22,8 +21,6 @@ function NetworkSelect(props) {
     (state, newState) => ({...state, ...newState}),
     {networks: [], operators: [], network: {value: ''}}
   )
-
-  const {loadValidatorImages} = props
 
   const handleOpen = () => {
     setSelectedNetwork(props.network)
@@ -80,7 +77,6 @@ function NetworkSelect(props) {
         setValidators({})
         network.getValidators().then(data => {
           setValidators(data)
-          loadValidatorImages(network, data)
           setLoading(false)
         }, (error) => {
           setError('Unable to connect to this network currently. Try again later.')
