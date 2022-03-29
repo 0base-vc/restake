@@ -3376,7 +3376,7 @@
         "address": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd",
         "botAddress": "rizon1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy57xjzv",
         "runTime": "every 1 hour",
-        "minimumReward": 100
+        "minimumReward": 1000000
       }
     ],
     "authzSupport": true
