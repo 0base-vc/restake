@@ -79,7 +79,13 @@
   },
   "rizon": {
     "testAddress": "rizon1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy57xjzv",
-    "ownerAddress": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd"
+    "ownerAddress": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd",
+    "restUrl": [
+      "https://rizon-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://rizon-rpc.0base.dev"
+    ]
   },
   "sifchain": {
     "testAddress": "sif1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyj744pl",
