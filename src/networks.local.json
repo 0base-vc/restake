@@ -41,7 +41,13 @@
   },
   "gravitybridge": {
     "testAddress": "gravity1jrjdqzxchlt09gj6qvn4ds8suxh9aqwynngmtu",
-    "ownerAddress": "gravityvaloper1h4w306x3tm39gas6evu326c9ycxwrvk4drnv5t"
+    "ownerAddress": "gravityvaloper1h4w306x3tm39gas6evu326c9ycxwrvk4drnv5t",
+    "restUrl": [
+      "https://gravitybridge-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://gravitybridge-rpc.0base.dev"
+    ]
   },
   "impacthub": {
     "testAddress": "ixo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygky328",
@@ -93,15 +99,33 @@
   },
   "stargaze": {
     "testAddress": "stars1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyrld799",
-    "ownerAddress": "starsvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4qlwk6v"
+    "ownerAddress": "starsvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4qlwk6v",
+    "restUrl": [
+      "https://stargaze-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://stargaze-rpc.0base.dev"
+    ]
   },
   "terra": {
     "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
-    "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy"
+    "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy",
+    "restUrl": [
+      "https://terra-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://terra-rpc.0base.dev"
+    ]
   },
   "umee": {
     "testAddress": "umee1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy948u2x",
-    "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la"
+    "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la",
+    "restUrl": [
+      "https://umee-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://umee-rpc.0base.dev"
+    ]
   },
   "desmos": {
     "enabled": false
