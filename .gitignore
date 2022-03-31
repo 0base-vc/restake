@@ -2,6 +2,7 @@
 scripts/*
 !scripts/autostake.mjs
 !scripts/base.mjs
+!scripts/checkAuthz.mjs
 
 # dependencies
 /node_modules
