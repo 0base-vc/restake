@@ -13,7 +13,13 @@
   },
   "cerberus": {
     "testAddress": "cerberus1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyty62ml",
-    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0"
+    "ownerAddress": "cerberusvaloper1pzqjgfd25qsyfdtmx9elrqx6zjjvnc9stqd7h0",
+    "restUrl": [
+      "https://cerberus-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://cerberus-rpc.0base.dev"
+    ]
   },
   "chihuahua": {
     "testAddress": "chihuahua1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy5khd0k",
@@ -23,8 +29,10 @@
     "testAddress": "cosmos1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyhr6rw5",
     "ownerAddress": "cosmosvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q46fe2xk",
     "restUrl": [
-      "https://lcd-cosmoshub.blockapsis.com",
-      "https://rest.cosmos.directory/cosmoshub"
+      "https://cosmoshub-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://cosmoshub-rpc.0base.dev"
     ]
   },
   "evmos": {
@@ -33,7 +41,13 @@
   },
   "gravitybridge": {
     "testAddress": "gravity1jrjdqzxchlt09gj6qvn4ds8suxh9aqwynngmtu",
-    "ownerAddress": "gravityvaloper1h4w306x3tm39gas6evu326c9ycxwrvk4drnv5t"
+    "ownerAddress": "gravityvaloper1h4w306x3tm39gas6evu326c9ycxwrvk4drnv5t",
+    "restUrl": [
+      "https://gravitybridge-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://gravitybridge-rpc.0base.dev"
+    ]
   },
   "impacthub": {
     "testAddress": "ixo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygky328",
@@ -41,19 +55,43 @@
   },
   "juno": {
     "testAddress": "juno1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyp3ecfg",
-    "ownerAddress": "junovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4kjctkq"
+    "ownerAddress": "junovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4kjctkq",
+    "restUrl": [
+      "https://juno-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://juno-rpc.0base.dev"
+    ]
   },
   "osmosis": {
     "testAddress": "osmo1jrjdqzxchlt09gj6qvn4ds8suxh9aqwylcfncx",
-    "ownerAddress": "osmovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d3kvts"
+    "ownerAddress": "osmovaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d3kvts",
+    "restUrl": [
+      "https://osmosis-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://osmosis-rpc.0base.dev"
+    ]
   },
   "regen": {
     "testAddress": "regen1jrjdqzxchlt09gj6qvn4ds8suxh9aqwygp3lcs",
-    "ownerAddress": "regenvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ucmxys"
+    "ownerAddress": "regenvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ucmxys",
+    "restUrl": [
+      "https://regen-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://regen-rpc.0base.dev"
+    ]
   },
   "rizon": {
     "testAddress": "rizon1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy57xjzv",
-    "ownerAddress": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd"
+    "ownerAddress": "rizonvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q40yn0yd",
+    "restUrl": [
+      "https://rizon-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://rizon-rpc.0base.dev"
+    ]
   },
   "sifchain": {
     "testAddress": "sif1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyj744pl",
@@ -61,15 +99,33 @@
   },
   "stargaze": {
     "testAddress": "stars1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyrld799",
-    "ownerAddress": "starsvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4qlwk6v"
+    "ownerAddress": "starsvaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4qlwk6v",
+    "restUrl": [
+      "https://stargaze-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://stargaze-rpc.0base.dev"
+    ]
   },
   "terra": {
     "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
-    "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy"
+    "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy",
+    "restUrl": [
+      "https://terra-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://terra-rpc.0base.dev"
+    ]
   },
   "umee": {
     "testAddress": "umee1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy948u2x",
-    "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la"
+    "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la",
+    "restUrl": [
+      "https://umee-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://umee-rpc.0base.dev"
+    ]
   },
   "desmos": {
     "enabled": false
