@@ -12,6 +12,7 @@ import {
 
 import networksData from '../networks.json';
 import localNetworksData from '../networks.local.json';
+import {overrideNetworks} from "../utils/Helpers.mjs";
 
 const overrideNetworksData = (() => {
   try {
