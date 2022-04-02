@@ -150,6 +150,54 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
       });
   };
 
+  const isGenericDelegate = (authorization) => {
+    return authorization &&
+        authorization.authorization["@type"] ===
+        "/cosmos.authz.v1beta1.GenericAuthorization" &&
+        authorization.authorization.msg ===
+        "/cosmos.staking.v1beta1.MsgDelegate"
+  }
+  const getGrantsFromGeneric = (botAddress, address, validatorAddress, opts) => {
+    const searchParams = new URLSearchParams();
+    if(botAddress) searchParams.append("grantee", botAddress);
+    if(address) searchParams.append("granter", address);
+    // searchParams.append("msg_type_url", "/cosmos.staking.v1beta1.MsgDelegate");
+    return axios
+        .get(restUrl + "/cosmos/authz/v1beta1/grants?" + searchParams.toString(), opts)
+        .then((res) => res.data)
+        .then((result) => {
+          const claimGrant = result.grants.find((el) => {
+            if (
+                el.authorization["@type"] ===
+                "/cosmos.authz.v1beta1.GenericAuthorization" &&
+                el.authorization.msg ===
+                "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+            ) {
+              return Date.parse(el.expiration) > new Date();
+            } else {
+              return false;
+            }
+          });
+          const stakeGrant = result.grants.find((el) => {
+            if (isGenericDelegate(el))  return Date.parse(el.expiration) > new Date();
+            if (
+                el.authorization["@type"] ===
+                "/cosmos.staking.v1beta1.StakeAuthorization"
+            ) {
+              return Date.parse(el.expiration) > new Date();
+            } else {
+              return false;
+            }
+          });
+          if(isGenericDelegate(stakeGrant)) stakeGrant.authorization.allow_list = { address: [validatorAddress] };
+
+          return {
+            claimGrant,
+            stakeGrant,
+          };
+        });
+  };
+
   const getWithdrawAddress = (address, opts) => {
     return axios
       .get(
@@ -206,6 +254,7 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
     getDelegations,
     getRewards,
     getGrants,
+    getGrantsFromGeneric,
     getWithdrawAddress
   };
 };

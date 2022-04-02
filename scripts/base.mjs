@@ -191,7 +191,7 @@ export class Autostake {
 
   getGrantValidators(client, delegatorAddress) {
     let timeout = client.network.data.autostake?.delegatorTimeout || 5000
-    return client.queryClient.getGrants(client.operator.botAddress, delegatorAddress, { timeout })
+    return client.queryClient.getGrantsFromGeneric(client.operator.botAddress, delegatorAddress, client.operator.address, { timeout })
       .then(
         (result) => {
           if (result.claimGrant && result.stakeGrant) {
