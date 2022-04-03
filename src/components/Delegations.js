@@ -297,7 +297,7 @@ class Delegations extends React.Component {
   }
 
   restakePossible() {
-    return !this.state.isNanoLedger && this.authzSupport();
+    return this.authzSupport();
   }
 
   operatorForValidator(validatorAddress) {
@@ -714,7 +714,7 @@ class Delegations extends React.Component {
           this.state.isNanoLedger && (
             <AlertMessage
               variant="warning"
-              message="Ledger devices are unable to send authz transactions right now. We will support them as soon as possible, and you can manually restake for now."
+              message="Auto-compound for Ledger is possible on this site with a type called MsgDelegate. However, it can't set the validator address to the bot when giving it permission. Be aware that malicious validators can make abnormal delegations."
               dismissible={false}
             />
           )}
