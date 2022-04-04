@@ -11,7 +11,7 @@ import Delegate from "./Delegate";
 import ValidatorImage from "./ValidatorImage";
 import TooltipIcon from "./TooltipIcon";
 
-import { Table, Button, Dropdown, Spinner } from "react-bootstrap";
+import { Table, Button, Dropdown, Spinner, Alert } from "react-bootstrap";
 
 import { CheckCircle, XCircle } from "react-bootstrap-icons";
 
@@ -712,11 +712,9 @@ class Delegations extends React.Component {
         {this.authzSupport() &&
           this.props.operators.length > 0 &&
           this.state.isNanoLedger && (
-            <AlertMessage
-              variant="warning"
-              message="Read the instructions carefully to auto-compound with a ledger."
-              dismissible={false}
-            />
+            <Alert onClick={() => window.open("https://gist.github.com/jjangg96/5ebe57cd522d42bf5e045007cf0d299a", "_blank")} variant="warning" className="text-center text-decoration-underline" role="button">
+              How to Auto-compound with Ledger
+            </Alert>
           )}
         <AlertMessage message={this.state.error} />
       </>

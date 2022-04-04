@@ -208,7 +208,6 @@ class App extends React.Component {
         <div className="mb-5">
           <p className="lead fs-3 text-center mt-5 mb-5">
             REStake allows validators to <strong onClick={() => this.setState({ showAbout: true })} className="text-decoration-underline" role="button">auto-compound</strong> your <strong onClick={this.showNetworkSelect} className="text-decoration-underline" role="button">{this.props.network.prettyName}</strong> staking rewards for you
-            <br/><strong onClick={() => window.open("https://gist.github.com/jjangg96/5ebe57cd522d42bf5e045007cf0d299a", "_blank")} className="text-decoration-underline" role="button">How to Auto-compound with Ledger</strong>
           </p>
           <AlertMessage message={this.state.error} variant="danger" dismissible={false} />
           {!this.state.address && (
