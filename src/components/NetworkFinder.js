@@ -50,12 +50,11 @@ function NetworkFinder() {
     return _.compact(networks).reduce((a, v) => ({ ...a, [v.name]: v}), {})
   }
 
-  const changeNetwork = (network, validators) => {
-    const operators = Object.keys(validators).length ? network.getOperators(validators) : []
+  const changeNetwork = (network) => {
     setState({
       network: network,
-      validators: validators,
-      operators: operators
+      validators: network.getValidators(),
+      operators: network.getOperators()
     })
 
     navigate("/" + network.name);
@@ -87,8 +86,12 @@ function NetworkFinder() {
         navigate("/" + networkName);
       }
       Network(data).then(network => {
-        setState({network: network})
-      }, (error) => {
+        if(network.connected){
+          setState({ network: network })
+        }else{
+          throw false
+        }
+      }).catch(error => {
         Network(data, true).then(network => {
           setState({ network: network, loading: false })
         })
@@ -100,14 +103,10 @@ function NetworkFinder() {
     if(state.error) return
     if(!state.network || !state.network.connected) return
     if(state.network && (!Object.keys(state.validators).length)){
-      state.network.getValidators().then(validators => {
-        setState({
-          validators,
-          operators: state.network.getOperators(validators),
-          loading: false
-        })
-      }, error => {
-        setState({validators: {}, loading: false})
+      setState({
+        validators: state.network.getValidators(),
+        operators: state.network.getOperators(),
+        loading: false
       })
     }
   }, [state.network])

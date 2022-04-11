@@ -1,11 +1,9 @@
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { Slip10RawIndex, pathToString } from "@cosmjs/crypto";
 import Network from '../src/utils/Network.mjs'
-import {timeStamp, mapSync, executeSync, overrideNetworks} from '../src/utils/Helpers.mjs'
+import {coin, timeStamp, mapSync, executeSync, overrideNetworks} from '../src/utils/Helpers.mjs'
 
-import {
-  coin
-} from '@cosmjs/stargate'
+import { divide, bignumber, floor, format } from 'mathjs'
 
 import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx.js";
 import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
@@ -13,6 +11,8 @@ import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx.js";
 
 import fs from 'fs'
 import _ from 'lodash'
+
+import 'dotenv/config'
 
 export class Autostake {
   constructor(){
@@ -24,7 +24,9 @@ export class Autostake {
   }
 
   async run(networkName){
-    const calls = this.getNetworksData().map(data => {
+    const networks = this.getNetworksData()
+    if(networkName && !networks.map(el => el.name).includes(networkName)) return timeStamp('Invalid network name:', networkName)
+    const calls = networks.map(data => {
       return async () => {
         if(networkName && data.name !== networkName) return
         if(data.enabled === false) return
@@ -38,18 +40,16 @@ export class Autostake {
 
         if(!client) return timeStamp('Skipping')
 
-        const { restUrl, rpcUrl } = client.network
+        const { restUrl, rpcUrl, usingDirectory } = client.network
 
         timeStamp('Using REST URL', restUrl)
         timeStamp('Using RPC URL', rpcUrl)
-
-        const usingDirectory = !![restUrl, rpcUrl].find(el => el.match("cosmos.directory"))
 
         if(usingDirectory){
           timeStamp('You are using public nodes, script may fail with many delegations. Check the README to use your own')
           timeStamp('Delaying briefly to reduce load...')
           await new Promise(r => setTimeout(r, (Math.random() * 31) * 1000));
-        } 
+        }
 
         try {
           await this.runNetwork(client)
@@ -119,14 +119,14 @@ export class Autostake {
 
     timeStamp('Bot address is', botAddress)
 
+    const operator = network.getOperatorByBotAddress(botAddress)
+    if (!operator) return timeStamp('Not an operator')
+
     if (network.slip44 && network.slip44 !== slip44) {
       timeStamp("!! You are not using the preferred derivation path !!")
       timeStamp("!! You should switch to the correct path unless you have grants. Check the README !!")
-    } 
+    }
 
-    const operatorData = network.operators.find(el => el.botAddress === botAddress)
-
-    if (!operatorData) return timeStamp('Not an operator')
     if (!network.authzSupport) return timeStamp('No Authz support')
 
     network = await Network(data)
@@ -136,9 +136,6 @@ export class Autostake {
     const client = await network.signingClient(wallet)
     client.registry.register("/cosmos.authz.v1beta1.MsgExec", MsgExec)
 
-    const validators = await network.getValidators()
-    const operators = network.getOperators(validators)
-    const operator = network.getOperatorByBotAddress(operators, botAddress)
 
     return {
       network,
@@ -191,10 +188,15 @@ export class Autostake {
 
   getGrantValidators(client, delegatorAddress) {
     let timeout = client.network.data.autostake?.delegatorTimeout || 5000
-    return client.queryClient.getGrantsFromGeneric(client.operator.botAddress, delegatorAddress, client.operator.address, { timeout })
+    return client.queryClient.getGrants(client.operator.botAddress, delegatorAddress, { timeout })
       .then(
         (result) => {
           if (result.claimGrant && result.stakeGrant) {
+            if (result.stakeGrant.authorization['@type'] === "/cosmos.authz.v1beta1.GenericAuthorization") {
+              timeStamp(delegatorAddress, "Using GenericAuthorization, allowed")
+              return [client.operator.address];
+            }
+
             const grantValidators = result.stakeGrant.authorization.allow_list.address
             if (!grantValidators.includes(client.operator.address)) {
               timeStamp(delegatorAddress, "Not autostaking for this validator, skipping")
@@ -230,9 +232,9 @@ export class Autostake {
   async getAutostakeMessage(client, address, validators) {
     const totalRewards = await this.totalRewards(client, address, validators)
 
-    const perValidatorReward = parseInt(totalRewards / validators.length)
+    const perValidatorReward = floor(divide(totalRewards, validators.length))
 
-    if (perValidatorReward < client.operator.data.minimumReward) {
+    if (perValidatorReward < bignumber(client.operator.minimumReward)) {
       timeStamp(address, perValidatorReward, client.network.denom, 'reward is too low, skipping')
       return
     }
@@ -312,7 +314,7 @@ export class Autostake {
           const total = Object.values(rewards).reduce((sum, item) => {
             const reward = item.reward.find(el => el.denom === client.network.denom)
             if (reward && validators.includes(item.validator_address)) {
-              return sum + parseInt(reward.amount)
+              return sum + bignumber(reward.amount)
             }
             return sum
           }, 0)
@@ -328,11 +330,16 @@ export class Autostake {
   getNetworksData() {
     const networksData = fs.readFileSync('src/networks.json');
     const networks = JSON.parse(networksData);
+    const networkNames = networks.map(el => el.name)
     try {
       const overridesData = fs.readFileSync('src/networks.local.json');
-      const overrides = overridesData && JSON.parse(overridesData)
+      const overrides = overridesData && JSON.parse(overridesData) || {}
+      Object.keys(overrides).forEach(key => {
+        if(!networkNames.includes(key)) timeStamp('Invalid key in networks.local.json:', key)
+      })
       return overrideNetworks(networks, overrides)
     } catch {
+      timeStamp('Failed to parse networks.local.json, check JSON is valid')
       return networks
     }
   }

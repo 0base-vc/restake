@@ -136,66 +136,24 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
         const stakeGrant = result.grants.find((el) => {
           if (
             el.authorization["@type"] ===
-            "/cosmos.staking.v1beta1.StakeAuthorization"
+            "/cosmos.staking.v1beta1.StakeAuthorization" || (
+              // Handle GenericAuthorization for Ledger
+              el.authorization["@type"] ===
+              "/cosmos.authz.v1beta1.GenericAuthorization" &&
+              el.authorization.msg ===
+              "/cosmos.staking.v1beta1.MsgDelegate"
+            )
           ) {
             return Date.parse(el.expiration) > new Date();
           } else {
             return false;
           }
-        });
+        })
         return {
           claimGrant,
           stakeGrant,
         };
       });
-  };
-
-  const isGenericDelegate = (authorization) => {
-    return authorization &&
-        authorization.authorization["@type"] ===
-        "/cosmos.authz.v1beta1.GenericAuthorization" &&
-        authorization.authorization.msg ===
-        "/cosmos.staking.v1beta1.MsgDelegate"
-  }
-  const getGrantsFromGeneric = (botAddress, address, validatorAddress, opts) => {
-    const searchParams = new URLSearchParams();
-    if(botAddress) searchParams.append("grantee", botAddress);
-    if(address) searchParams.append("granter", address);
-    // searchParams.append("msg_type_url", "/cosmos.staking.v1beta1.MsgDelegate");
-    return axios
-        .get(restUrl + "/cosmos/authz/v1beta1/grants?" + searchParams.toString(), opts)
-        .then((res) => res.data)
-        .then((result) => {
-          const claimGrant = result.grants.find((el) => {
-            if (
-                el.authorization["@type"] ===
-                "/cosmos.authz.v1beta1.GenericAuthorization" &&
-                el.authorization.msg ===
-                "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
-            ) {
-              return Date.parse(el.expiration) > new Date();
-            } else {
-              return false;
-            }
-          });
-          const stakeGrant = result.grants.find((el) => {
-            if (isGenericDelegate(el))  return Date.parse(el.expiration) > new Date();
-            if (
-                el.authorization["@type"] ===
-                "/cosmos.staking.v1beta1.StakeAuthorization"
-            ) {
-              return Date.parse(el.expiration) > new Date();
-            } else {
-              return false;
-            }
-          });
-          if(isGenericDelegate(stakeGrant)) stakeGrant.authorization.allow_list = { address: [validatorAddress] };
-
-          return {
-            claimGrant,
-            stakeGrant,
-          };
-        });
   };
 
   const getWithdrawAddress = (address, opts) => {
@@ -224,22 +182,18 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
     return pages;
   };
 
-  function findAvailableUrl(urls, type) {
+  async function findAvailableUrl(urls, type) {
     const path = type === "rest" ? "/blocks/latest" : "/block";
-    return Promise.any(
-      urls.map((url) => {
-        return axios
-          .get(url + path, { timeout: 10000 })
+    return Promise.any(urls.map(async (url) => {
+      try {
+        let data = await axios.get(url + path, { timeout: 10000 })
           .then((res) => res.data)
-          .then((data) => {
-            if (type === "rpc") data = data.result;
-            if (!data.block.header.chain_id === chainId) {
-              throw false;
-            }
-            return url;
-          });
-      })
-    );
+        if (type === "rpc") data = data.result;
+        if (data.block?.header?.chain_id === chainId) {
+          return url;
+        }
+      } catch { }
+    }));
   }
 
   return {
@@ -254,7 +208,6 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
     getDelegations,
     getRewards,
     getGrants,
-    getGrantsFromGeneric,
     getWithdrawAddress
   };
 };
