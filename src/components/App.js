@@ -43,7 +43,7 @@ class App extends React.Component {
     if(this.state.keplr != prevState.keplr){
       this.connect()
     }else if(this.props.network && this.props.network !== prevProps.network){
-      this.setState({ balance: undefined })
+      this.setState({ balance: undefined, address: undefined })
       this.connect()
     }
   }
@@ -104,7 +104,8 @@ class App extends React.Component {
       } catch (e) {
         console.log(e)
         return this.setState({
-          error: 'Failed to connect to signing client. API may be down'
+          error: 'Failed to connect to signing client. API may be down.',
+          loading: false
         })
       }
     }
@@ -142,7 +143,8 @@ class App extends React.Component {
         bech32PrefixConsPub: network.prefix + "valconspub"
       },
       currencies: [currency],
-      feeCurrencies: [currency]
+      feeCurrencies: [currency],
+      gasPriceStep: network.gasPriceStep
     })
   }
 
@@ -237,6 +239,7 @@ class App extends React.Component {
                 address={this.state.address}
                 operators={this.props.operators}
                 validators={this.props.validators}
+                validator={this.props.validator}
                 balance={this.state.balance}
                 getBalance={this.getBalance}
                 queryClient={this.state.queryClient}
