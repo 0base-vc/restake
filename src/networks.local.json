@@ -177,6 +177,17 @@
       "https://umee-rpc.0base.dev"
     ]
   },
+  "crescent": {
+    "testAddress": "cre1jrjdqzxchlt09gj6qvn4ds8suxh9aqwyntfxme",
+    "ownerAddress": "crevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4ep74jz",
+    "restUrl": [
+      "https://crescent-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://crescent-rpc.0base.dev"
+    ],
+    "gasPrice": "0.01ucre"
+  },
   "desmos": {
     "enabled": false
   }
