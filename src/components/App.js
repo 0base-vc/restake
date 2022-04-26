@@ -210,10 +210,10 @@ class App extends React.Component {
             <span onClick={() => this.setState({ showAbout: true })} role="button" className="text-reset text-decoration-none">
               {this.props.theme === 'light'
                ? (
-                  <img src={Logo} srcSet={`${Logo2x} 2x, ${Logo3x} 3x`} alt="REStake" /> by 0base.vc
+                  <img src={Logo} srcSet={`${Logo2x} 2x, ${Logo3x} 3x`} alt="REStake" />
                ) : (
-                  <img src={LogoWhite} srcSet={`${LogoWhite2x} 2x, ${LogoWhite3x} 3x`} alt="REStake" /> by 0base.vc
-               )}
+                  <img src={LogoWhite} srcSet={`${LogoWhite2x} 2x, ${LogoWhite3x} 3x`} alt="REStake" />
+               )} by 0base.vc
             </span>
           </div>
           {this.state.address &&
