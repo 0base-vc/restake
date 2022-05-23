@@ -39,7 +39,7 @@ class Delegations extends React.Component {
   async componentDidMount() {
     const isNanoLedger = this.props.stargateClient.getIsNanoLedger();
     this.setState({ isNanoLedger: isNanoLedger });
-    this.getGrants()
+    this.getGrants(true)
     this.refresh();
 
     if (this.props.validator) {
@@ -71,14 +71,14 @@ class Delegations extends React.Component {
       });
       this.refresh();
       if(this.props.delegations){
-        return this.getGrants()
+        return this.getGrants(true)
       }
     }
 
     if (this.props.delegations && prevProps.delegations){
       const delegationsChanged = _.difference(Object.keys(this.props.delegations), Object.keys(prevProps.delegations || {})).length > 0
       if (delegationsChanged) {
-        this.getGrants()
+        this.getGrants(true)
       }
     }
   }
@@ -265,7 +265,6 @@ class Delegations extends React.Component {
       sum[operator.botAddress] = {
         ...grant,
         grantsValid: !!(
-          grant.claimGrant &&
           grant.stakeGrant &&
           (!grant.validators || grant.validators.includes(operator.address)) &&
           (grant.maxTokens === null || larger(grant.maxTokens, this.validatorReward(operator.address)))
@@ -550,6 +549,7 @@ class Delegations extends React.Component {
                               <RevokeRestake
                                 address={this.props.address}
                                 operator={operator}
+                                grants={grants}
                                 stargateClient={this.props.stargateClient}
                                 onRevoke={this.onRevoke}
                                 setLoading={(loading) =>
@@ -663,18 +663,14 @@ class Delegations extends React.Component {
     const alerts = (
       <>
         {!this.authzSupport() && (
-          <AlertMessage variant="warning" dismissible={false}>
-            {this.props.network.prettyName} doesn't support Authz just yet. You
-            can manually restake for now and REStake is ready when support is
-            enabled
+          <AlertMessage variant="info" dismissible={false}>
+            {this.props.network.prettyName} doesn't support Authz just yet. You can stake and compound manually for now and REStake will update automatically when support is added.
           </AlertMessage>
         )}
-        {this.authzSupport() && !this.props.operators.length && (
-          <AlertMessage
-            variant="warning"
-            message="There are no REStake operators for this network yet. You can compound manually, or check the About section to run one yourself"
-            dismissible={false}
-          />
+        {this.props.network.experimental && (
+          <AlertMessage variant="info" dismissible={false}>
+            This network was added to REStake automatically and has not been thoroughly tested yet. <a href="https://github.com/eco-stake/restake/issues" target="_blank">Raise an issue</a> if you have any problems.
+          </AlertMessage>
         )}
         {this.authzSupport() &&
           this.props.operators.length > 0 &&
@@ -724,6 +720,7 @@ class Delegations extends React.Component {
                 <th>#</th>
                 <th colSpan={2}>Validator</th>
                 <th className="d-none d-sm-table-cell text-center">REStake</th>
+                <th className="d-sm-none"></th>
                 <th className="d-none d-lg-table-cell text-center">
                   Frequency
                 </th>
@@ -741,8 +738,8 @@ class Delegations extends React.Component {
                   </th>
                 )}
                 <th className="d-none d-sm-table-cell">Delegation</th>
-                <th className="d-none d-sm-table-cell">Rewards</th>
-                <th width={110}></th>
+                <th className="d-none d-md-table-cell">Rewards</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
