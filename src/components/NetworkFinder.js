@@ -12,6 +12,7 @@ import {
 
 import networksData from '../networks.json';
 import localNetworksData from '../networks.local.json';
+import {overrideNetworks} from "../utils/Helpers.mjs";
 
 const overrideNetworksData = (() => {
   try {
@@ -51,11 +52,16 @@ function NetworkFinder() {
       return {}
     }
 
-    const networks = overrideNetworksData.filter(el => el.enabled !== false).map(data => {
-      const registryData = registryNetworks[data.name] || {}
-      return {...registryData, ...data}
+    const networks = Object.values(registryNetworks).map(data => {
+      const networkData = overrideNetworksData.find(el => el.name === data.path)
+      if(networkData && networkData.enabled === false) return 
+      if(!data.image || data.status === 'killed') return
+
+      if(!networkData) data.experimental = true
+
+      return {...data, ...networkData}
     })
-    return _.compact(networks).reduce((a, v) => ({ ...a, [v.name]: v}), {})
+    return _.compact(networks).reduce((a, v) => ({ ...a, [v.path]: v}), {})
   }
 
   const changeNetwork = (network) => {
@@ -113,10 +119,12 @@ function NetworkFinder() {
 
   useEffect(() => {
     if(Object.keys(state.networks).length && !state.network){
-      let networkName = params.network || Object.keys(state.networks)[0]
+      const networks = Object.values(state.networks)
+      const defaultNetwork = (networks.find(el => el.default === true) || networks[0])
+      let networkName = params.network || defaultNetwork.name
       let data = state.networks[networkName]
       if(params.network && !data){
-        networkName = Object.keys(state.networks)[0]
+        networkName = defaultNetwork.name
         data = state.networks[networkName]
       }
       if(!data){
