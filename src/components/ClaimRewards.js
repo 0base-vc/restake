@@ -70,23 +70,6 @@ function ClaimRewards(props) {
     return validatorRewards.map(validatorReward => {
       let valMessages = []
 
-      valMessages.push({
-        typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
-        value: MsgWithdrawDelegatorReward.fromPartial({
-          delegatorAddress: props.address,
-          validatorAddress: validatorReward.validatorAddress
-        })
-      })
-      
-      if (props.commission) {
-        valMessages.push({
-          typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission",
-          value: MsgWithdrawValidatorCommission.fromPartial({
-            validatorAddress: validatorReward.validatorAddress
-          })
-        })
-      }
-
       if(props.restake){
         valMessages.push({
           typeUrl: "/cosmos.staking.v1beta1.MsgDelegate",
@@ -94,6 +77,23 @@ function ClaimRewards(props) {
             delegatorAddress: props.address,
             validatorAddress: validatorReward.validatorAddress,
             amount: coin(validatorReward.reward, props.network.denom)
+          })
+        })
+      }else{
+        valMessages.push({
+          typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
+          value: MsgWithdrawDelegatorReward.fromPartial({
+            delegatorAddress: props.address,
+            validatorAddress: validatorReward.validatorAddress
+          })
+        })
+      }
+      
+      if (props.commission) {
+        valMessages.push({
+          typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission",
+          value: MsgWithdrawValidatorCommission.fromPartial({
+            validatorAddress: validatorReward.validatorAddress
           })
         })
       }

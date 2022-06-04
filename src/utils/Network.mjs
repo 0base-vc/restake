@@ -5,24 +5,21 @@ import SigningClient from './SigningClient.mjs'
 import Operator from './Operator.mjs'
 import Chain from './Chain.mjs'
 import CosmosDirectory from './CosmosDirectory.mjs'
-import DesmosSigningClient from './DesmosSigningClient.mjs'
 
 class Network {
   constructor(data) {
-    this.SIGNERS = {
-      desmos: DesmosSigningClient
-    }
-
     this.data = data
     this.enabled = data.enabled
+    this.experimental = data.experimental
     this.apyEnabled = data.apyEnabled
-    this.name = data.name
+    this.name = data.path || data.name
+    this.default = data.default
     this.directory = CosmosDirectory()
 
-    this.rpcUrl = data.rpcUrl || this.directory.rpcUrl(data.name)
-    this.restUrl = data.restUrl || this.directory.restUrl(data.name)
+    this.rpcUrl = this.directory.rpcUrl(this.name) // only used for Keplr suggestChain
+    this.restUrl = data.restUrl || this.directory.restUrl(this.name)
 
-    this.usingDirectory = !![this.restUrl, this.rpcUrl].find(el => {
+    this.usingDirectory = !![this.restUrl].find(el => {
       const match = el => el.match("cosmos.directory")
       if (Array.isArray(el)) {
         return el.find(match)
@@ -32,10 +29,15 @@ class Network {
     })
   }
 
+  connectedDirectory() {
+    const apis = this.chain ? this.chain.chainData['best_apis'] : this.data['best_apis']
+    return apis && ['rest'].every(type => apis[type].length > 0)
+  }
+
   async load() {
     this.chain = await Chain(this.data)
-    this.validators = await this.directory.getValidators(this.data.name)
-    this.operators = this.data.operators || this.validators.filter(el => el.restake).map(el => {
+    this.validators = await this.directory.getValidators(this.name)
+    this.operators = (this.data.operators || this.validators.filter(el => el.restake)).map(el => {
       return Operator(el)
     })
     this.prettyName = this.chain.prettyName
@@ -53,14 +55,15 @@ class Network {
     this.gasPrice = this.data.gasPrice || defaultGasPrice
     this.gasPriceStep = this.data.gasPriceStep
     this.gasPricePrefer = this.data.gasPricePrefer
+    this.gasModifier = this.data.gasModifier || 1.3
+    this.txTimeout = this.data.txTimeout || 60_000
   }
 
   async connect() {
     try {
-      this.queryClient = await QueryClient(this.chain.chainId, this.rpcUrl, this.restUrl)
+      this.queryClient = await QueryClient(this.chain.chainId, this.restUrl)
       this.restUrl = this.queryClient.restUrl
-      this.rpcUrl = this.queryClient.rpcUrl
-      this.connected = this.queryClient.connected
+      this.connected = this.queryClient.connected && (!this.usingDirectory || this.connectedDirectory())
     } catch (error) {
       console.log(error)
       this.connected = false
@@ -89,8 +92,7 @@ class Network {
     if (!this.queryClient)
       return
 
-    const client = this.SIGNERS[this.data.name] || SigningClient
-    return client(this.queryClient.rpcUrl, gasPrice || this.gasPrice, wallet, key)
+    return SigningClient(this, gasPrice || this.gasPrice, wallet, key)
   }
 
   getOperator(operatorAddress) {

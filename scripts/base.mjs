@@ -1,19 +1,24 @@
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { Slip10RawIndex, pathToString } from "@cosmjs/crypto";
-import Network from '../src/utils/Network.mjs'
-import {coin, timeStamp, mapSync, executeSync, overrideNetworks} from '../src/utils/Helpers.mjs'
-
-import { add, bignumber, floor, smaller, smallerEq } from 'mathjs'
-
-import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx.js";
-import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
-import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx.js";
-
 import fs from 'fs'
 import _ from 'lodash'
 
-import 'dotenv/config'
+import { add, bignumber, floor, smaller, smallerEq } from 'mathjs'
+
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { Slip10RawIndex, pathToString } from "@cosmjs/crypto";
+
+import { Wallet } from "@ethersproject/wallet";
+import { ETH } from "@tharsis/address-converter";
+import Bech32 from "bech32";
+
+import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
+import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx.js";
+
+import Network from '../src/utils/Network.mjs'
 import AutostakeHealth from "../src/utils/AutostakeHealth.mjs";
+import {coin, timeStamp, mapSync, executeSync, overrideNetworks} from '../src/utils/Helpers.mjs'
+import EthSigner from '../src/utils/EthSigner.mjs';
+
+import 'dotenv/config'
 
 export class Autostake {
   constructor(){
@@ -24,12 +29,14 @@ export class Autostake {
     }
   }
 
-  async run(networkName){
+  async run(networkNames){
     const networks = this.getNetworksData()
-    if(networkName && !networks.map(el => el.name).includes(networkName)) return timeStamp('Invalid network name:', networkName)
+    for(const name of networkNames){
+      if (name && !networks.map(el => el.name).includes(name)) return timeStamp('Invalid network name:', name)
+    }
     const calls = networks.map(data => {
       return async () => {
-        if(networkName && data.name !== networkName) return
+        if(networkNames && networkNames.length && !networkNames.includes(data.name)) return
         if(data.enabled === false) return
 
         let client
@@ -43,10 +50,9 @@ export class Autostake {
 
         if(!client) return health.success('Skipping')
 
-        const { restUrl, rpcUrl, usingDirectory } = client.network
+        const { restUrl, usingDirectory } = client.network
 
         timeStamp('Using REST URL', restUrl)
-        timeStamp('Using RPC URL', rpcUrl)
 
         if(usingDirectory){
           timeStamp('You are using public nodes, script may fail with many delegations. Check the README to use your own')
@@ -93,12 +99,47 @@ export class Autostake {
 
   async getClient(data, health) {
     let network = new Network(data)
-    let slip44
-    await network.load()
+    try {
+      await network.load()
+    } catch {
+      return timeStamp('Unable to load network data for', network.name)
+    }
 
     timeStamp('Starting', network.prettyName)
 
-    if(network.data.autostake?.correctSlip44){
+    const { wallet, botAddress, slip44 } = await this.getWallet(network)
+
+    timeStamp('Bot address is', botAddress)
+
+    if (network.slip44 && network.slip44 !== slip44) {
+      timeStamp("!! You are not using the preferred derivation path !!")
+      timeStamp("!! You should switch to the correct path unless you have grants. Check the README !!")
+    }
+
+    const operator = network.getOperatorByBotAddress(botAddress)
+    if (!operator) return timeStamp('Not an operator')
+
+    if (!network.authzSupport) return timeStamp('No Authz support')
+
+    await network.connect()
+    if (!network.restUrl) throw new Error('Could not connect to REST API')
+
+    const client = await network.signingClient(wallet)
+    client.registry.register("/cosmos.authz.v1beta1.MsgExec", MsgExec)
+
+    return {
+      network,
+      operator,
+      health,
+      signingClient: client,
+      queryClient: network.queryClient
+    }
+  }
+
+  async getWallet(network){
+    let slip44
+    if(network.data.autostake?.correctSlip44 || network.slip44 === 60){
+      if(network.slip44 === 60) timeStamp('Found ETH coin type')
       slip44 = network.slip44 || 118
     }else{
       slip44 = network.data.autostake?.slip44 || 118
@@ -117,35 +158,23 @@ export class Autostake {
       hdPaths: [hdPath]
     });
 
+    if(network.slip44 === 60){
+      return await this.getEthWallet(network, wallet)
+    }
+
     const accounts = await wallet.getAccounts()
     const botAddress = accounts[0].address
 
-    timeStamp('Bot address is', botAddress)
+    return { wallet, botAddress, slip44 }
+  }
 
-    const operator = network.getOperatorByBotAddress(botAddress)
-    if (!operator) return timeStamp('Not an operator')
+  async getEthWallet(network, signer){
+    const wallet = Wallet.fromMnemonic(this.mnemonic);
+    const ethereumAddress = await wallet.getAddress();
+    const data = ETH.decoder(ethereumAddress);
+    const botAddress = Bech32.encode(network.prefix, Bech32.toWords(data))
 
-    if (network.slip44 && network.slip44 !== slip44) {
-      timeStamp("!! You are not using the preferred derivation path !!")
-      timeStamp("!! You should switch to the correct path unless you have grants. Check the README !!")
-    }
-
-    if (!network.authzSupport) return timeStamp('No Authz support')
-
-    await network.connect()
-    if (!network.rpcUrl) throw new Error('Could not connect to RPC API')
-    if (!network.restUrl) throw new Error('Could not connect to REST API')
-
-    const client = await network.signingClient(wallet)
-    client.registry.register("/cosmos.authz.v1beta1.MsgExec", MsgExec)
-
-    return {
-      network,
-      operator,
-      health,
-      signingClient: client,
-      queryClient: network.queryClient
-    }
+    return { wallet: EthSigner(signer, wallet), botAddress, slip44: 60 }
   }
 
   checkBalance(client) {
@@ -194,7 +223,7 @@ export class Autostake {
     return client.queryClient.getGrants(client.operator.botAddress, delegatorAddress, { timeout })
       .then(
         (result) => {
-          if (result.claimGrant && result.stakeGrant) {
+          if (result.stakeGrant) {
             if (result.stakeGrant.authorization['@type'] === "/cosmos.authz.v1beta1.GenericAuthorization") {
               timeStamp(delegatorAddress, "Using GenericAuthorization, allowed")
               return [client.operator.address];
@@ -284,7 +313,9 @@ export class Autostake {
         try {
           timeStamp('...batch', index + 1)
           const memo = 'REStaked by ' + client.operator.moniker
-          await client.signingClient.signAndBroadcast(client.operator.botAddress, batch, undefined, memo).then((result) => {
+          const gasModifier = client.network.data.autostake?.gasModifier || 1.1
+          const gas = await client.signingClient.simulate(client.operator.botAddress, batch, memo, gasModifier);
+          await client.signingClient.signAndBroadcast(client.operator.botAddress, batch, gas, memo).then((result) => {
             timeStamp("Successfully broadcasted");
           }, (error) => {
             client.health.error('Failed to broadcast:', error.message)
@@ -309,12 +340,6 @@ export class Autostake {
 
   buildRestakeMessage(address, validatorAddress, amount, denom) {
     return [{
-      typeUrl: "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
-      value: MsgWithdrawDelegatorReward.encode(MsgWithdrawDelegatorReward.fromPartial({
-        delegatorAddress: address,
-        validatorAddress: validatorAddress
-      })).finish()
-    }, {
       typeUrl: "/cosmos.staking.v1beta1.MsgDelegate",
       value: MsgDelegate.encode(MsgDelegate.fromPartial({
         delegatorAddress: address,
@@ -348,16 +373,12 @@ export class Autostake {
   getNetworksData() {
     const networksData = fs.readFileSync('src/networks.json');
     const networks = JSON.parse(networksData);
-    const networkNames = networks.map(el => el.name)
     try {
       const overridesData = fs.readFileSync('src/networks.local.json');
       const overrides = overridesData && JSON.parse(overridesData) || {}
-      Object.keys(overrides).forEach(key => {
-        if(!networkNames.includes(key)) timeStamp('Invalid key in networks.local.json:', key)
-      })
       return overrideNetworks(networks, overrides)
-    } catch {
-      timeStamp('Failed to parse networks.local.json, check JSON is valid')
+    } catch (error) {
+      timeStamp('Failed to parse networks.local.json, check JSON is valid', error.message)
       return networks
     }
   }

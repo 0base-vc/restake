@@ -45,7 +45,7 @@ class DelegateForm extends React.Component {
     let messages = this.buildMessages(denomAmount)
     let gas
     try {
-       gas = await client.simulate(this.props.address, messages)
+       gas = await client.simulate(this.props.address, messages, undefined, this.modifier())
     } catch (error) {
       this.setState({ loading: false, error: error.message })
       return
@@ -89,10 +89,14 @@ class DelegateForm extends React.Component {
     return messages
   }
 
+  modifier(){
+    if(this.props.undelegate) return 1.5
+  }
+
   async setAvailableAmount(){
     this.setState({error: undefined})
     const messages = this.buildMessages(multiply(this.props.availableBalance.amount, 0.95))
-    this.props.stargateClient.simulate(this.props.address, messages).then(gas => {
+    this.props.stargateClient.simulate(this.props.address, messages, undefined, this.modifier()).then(gas => {
       const saveTxFeeNum = (this.props.redelegate || this.props.undelegate) ? 0 : 10
       const gasPrice = this.props.stargateClient.getFee(gas).amount[0].amount
       const decimals = pow(10, this.props.network.decimals || 6)
@@ -114,6 +118,10 @@ class DelegateForm extends React.Component {
     return this.props.network.symbol.toUpperCase()
   }
 
+  step(){
+    return 1 / pow(10, this.props.network.decimals)
+  }
+
   render() {
     return (
       <>
@@ -127,7 +135,7 @@ class DelegateForm extends React.Component {
             <Form.Label>Amount</Form.Label>
             <div className="mb-3">
               <div className="input-group">
-                <Form.Control name="amount" type="number" min={0} step={0.000001} placeholder="10" required={true} value={this.state.amount} onChange={this.handleInputChange} />
+                <Form.Control name="amount" type="number" min={0} step={this.step()} placeholder="10" required={true} value={this.state.amount} onChange={this.handleInputChange} />
                 <span className="input-group-text">{this.denom()}</span>
               </div>
               {this.props.availableBalance &&

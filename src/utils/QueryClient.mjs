@@ -1,8 +1,7 @@
 import axios from "axios";
 import _ from "lodash";
 
-const QueryClient = async (chainId, rpcUrls, restUrls) => {
-  let rpcUrl = await findAvailableUrl(rpcUrls, "rpc")
+const QueryClient = async (chainId, restUrls) => {
   let restUrl = await findAvailableUrl(restUrls, "rest")
 
   const getAllValidators = (pageSize, opts, pageCallback) => {
@@ -115,6 +114,7 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
       .get(restUrl + "/cosmos/authz/v1beta1/grants?" + searchParams.toString(), opts)
       .then((res) => res.data)
       .then((result) => {
+        // claimGrant is removed but we track for now to allow revoke
         const claimGrant = result.grants.find((el) => {
           if (
             el.authorization["@type"] ===
@@ -186,6 +186,7 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
     }
     const path = type === "rest" ? "/blocks/latest" : "/block";
     return Promise.any(urls.map(async (url) => {
+      url = url.replace(/\/$/, '')
       try {
         let data = await axios.get(url + path, { timeout: 10000 })
           .then((res) => res.data)
@@ -198,8 +199,7 @@ const QueryClient = async (chainId, rpcUrls, restUrls) => {
   }
 
   return {
-    connected: !!rpcUrl && !!restUrl,
-    rpcUrl,
+    connected: !!restUrl,
     restUrl,
     getAllValidators,
     getValidators,
