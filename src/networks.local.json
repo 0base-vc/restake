@@ -173,6 +173,21 @@
       "slip44": 330
     }
   },
+  "terra-v2": {
+    "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
+    "ownerAddress": "terravaloper1plxp55happ379eevsnk2xeuwzsrldsmqduyu36",
+    "denom": "uluna",
+    "restUrl": [
+      "https://terra-v2-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://terra-v2-rpc.0base.dev"
+    ],
+    "autostake": {
+      "correctSlip44": true,
+      "slip44": 330
+    }
+  },
   "umee": {
     "testAddress": "umee1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy948u2x",
     "ownerAddress": "umeevaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4d0h0la",
