@@ -63,9 +63,13 @@
   "evmos": {
     "testAddress": "evmos1w2v6ztzta7hra7q3j3g6g363tqnh02th0mauj3",
     "ownerAddress": "evmosvaloper1rh9uz23gmhr6q92a45qrath4fr9ffefz4eas0z",
-    "denom": "evmos",
+    "apyEnabled": false,
+    "txTimeout": 120000,
     "restUrl": [
-      "https://rest.cosmos.directory/evmos"
+      "https://evmos-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://evmos-rpc.0base.dev"
     ]
   },
   "gravitybridge": {
