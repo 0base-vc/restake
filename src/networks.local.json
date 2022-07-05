@@ -173,7 +173,7 @@
       "slip44": 330
     }
   },
-  "terra-v2": {
+  "terra2": {
     "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
     "ownerAddress": "terravaloper1plxp55happ379eevsnk2xeuwzsrldsmqduyu36",
     "denom": "uluna",
