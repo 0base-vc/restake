@@ -15,13 +15,14 @@ import { MsgExec } from "cosmjs-types/cosmos/authz/v1beta1/tx.js";
 
 import Network from '../src/utils/Network.mjs'
 import AutostakeHealth from "../src/utils/AutostakeHealth.mjs";
-import {coin, timeStamp, mapSync, executeSync, overrideNetworks} from '../src/utils/Helpers.mjs'
+import {coin, timeStamp, mapSync, executeSync, overrideNetworks, parseGrants} from '../src/utils/Helpers.mjs'
 import EthSigner from '../src/utils/EthSigner.mjs';
 
 import 'dotenv/config'
 
 export class Autostake {
-  constructor(){
+  constructor(opts){
+    this.opts = opts || {}
     this.mnemonic = process.env.MNEMONIC
     if(!this.mnemonic){
       timeStamp('Please provide a MNEMONIC environment variable')
@@ -40,7 +41,7 @@ export class Autostake {
         if(data.enabled === false) return
 
         let client
-        let health = new AutostakeHealth(data.healthCheck)
+        let health = new AutostakeHealth(data.healthCheck, { dryRun: this.opts.dryRun })
         health.started('⚛')
         try {
           client = await this.getClient(data, health)
@@ -92,9 +93,7 @@ export class Autostake {
 
     timeStamp("Found", grantedAddresses.length, "delegators with valid grants...")
 
-    let grantMessages = await this.getAutostakeMessages(client, grantedAddresses)
-    await this.autostake(client, grantMessages)
-    health.complete(network.prettyName, "finished")
+    await this.autostake(client, grantedAddresses)
   }
 
   async getClient(data, health) {
@@ -201,17 +200,22 @@ export class Autostake {
   }
 
   async getGrantedAddresses(client, addresses) {
-    let batchSize = client.network.data.autostake?.batchQueries || 50
+    const { botAddress, address } = client.operator
+    let allGrants
+    try {
+      allGrants = await client.queryClient.getGranteeGrants(botAddress)
+    } catch (e) {  }
     let grantCalls = addresses.map(item => {
       return async () => {
+        if(allGrants) return this.parseGrantResponse(allGrants, botAddress, item, address)
         try {
-          const grant = await this.getGrants(client, item)
-          return grant ? { address: item, grant: grant } : undefined
+          return await this.getGrants(client, item)
         } catch (error) {
-          client.health.error(item, 'Failed to get address', error.message)
+          client.health.error(item, 'Failed to get grants', error.message)
         }
       }
     })
+    let batchSize = client.network.data.autostake?.batchQueries || 50
     let grantedAddresses = await mapSync(grantCalls, batchSize, (batch, index) => {
       timeStamp('...batch', index + 1)
     })
@@ -219,29 +223,12 @@ export class Autostake {
   }
 
   getGrants(client, delegatorAddress) {
+    const { botAddress, address } = client.operator
     let timeout = client.network.data.autostake?.delegatorTimeout || 5000
-    return client.queryClient.getGrants(client.operator.botAddress, delegatorAddress, { timeout })
+    return client.queryClient.getGrants(botAddress, delegatorAddress, { timeout })
       .then(
         (result) => {
-          if (result.stakeGrant) {
-            if (result.stakeGrant.authorization['@type'] === "/cosmos.authz.v1beta1.GenericAuthorization") {
-              timeStamp(delegatorAddress, "Using GenericAuthorization, allowed")
-              return [client.operator.address];
-            }
-
-            const grantValidators = result.stakeGrant.authorization.allow_list.address
-            if (!grantValidators.includes(client.operator.address)) {
-              timeStamp(delegatorAddress, "Not autostaking for this validator, skipping")
-              return
-            }
-
-            const maxTokens = result.stakeGrant.authorization.max_tokens
-
-            return {
-              maxTokens: maxTokens && bignumber(maxTokens.amount),
-              validators: grantValidators,
-            }
-          }
+          return this.parseGrantResponse(result, botAddress, delegatorAddress, address)
         },
         (error) => {
           client.health.error(delegatorAddress, "ERROR skipping this run:", error.message || error)
@@ -249,26 +236,43 @@ export class Autostake {
       )
   }
 
-  async getAutostakeMessages(client, grantAddresses) {
-    let batchSize = client.network.data.autostake?.batchQueries || 50
-    let calls = grantAddresses.map(item => {
-      return async () => {
-        try {
-          return await this.getAutostakeMessage(client, item)
-        } catch (error) {
-          client.health.error(item.address, 'Failed to get address', error.message)
+  parseGrantResponse(grants, botAddress, delegatorAddress, validatorAddress){
+    const result = parseGrants(grants, botAddress, delegatorAddress)
+    let grantValidators, maxTokens
+    if (result.stakeGrant) {
+      if (result.stakeGrant.authorization['@type'] === "/cosmos.authz.v1beta1.GenericAuthorization") {
+        timeStamp(delegatorAddress, "Using GenericAuthorization, allowed")
+        grantValidators = [validatorAddress];
+      }else{
+        grantValidators = result.stakeGrant.authorization.allow_list.address
+        if (!grantValidators.includes(validatorAddress)) {
+          timeStamp(delegatorAddress, "Not autostaking for this validator, skipping")
+          return
         }
+        maxTokens = result.stakeGrant.authorization.max_tokens
       }
-    })
-    let messages = await mapSync(calls, batchSize, (batch, index) => {
-      // timeStamp('...batch', index + 1)
-    })
-    return _.compact(messages.flat())
+
+      const grant = {
+        maxTokens: maxTokens && bignumber(maxTokens.amount),
+        validators: grantValidators,
+      }
+      return { address: delegatorAddress, grant: grant }
+    }
   }
 
   async getAutostakeMessage(client, grantAddress) {
     const { address, grant } = grantAddress
+
+    let timeout = client.network.data.autostake?.delegatorTimeout || 5000
+    const withdrawAddress = await client.queryClient.getWithdrawAddress(address, { timeout })
+    if(withdrawAddress && withdrawAddress !== address){
+      timeStamp(address, 'has a different withdraw address:', withdrawAddress)
+      return
+    }
+
     const totalRewards = await this.totalRewards(client, address)
+
+    if(totalRewards === undefined) return
 
     let autostakeAmount = floor(totalRewards)
 
@@ -288,44 +292,92 @@ export class Autostake {
       }
     }
 
-    let timeout = client.network.data.autostake?.delegatorTimeout || 5000
-    const withdrawAddress = await client.queryClient.getWithdrawAddress(address, { timeout })
-    if(withdrawAddress && withdrawAddress !== address){
-      timeStamp(address, 'has a different withdraw address:', withdrawAddress)
-      return
-    }
-
     timeStamp(address, "Can autostake", autostakeAmount, client.network.denom)
 
-    let messages = this.buildRestakeMessage(address, client.operator.address, autostakeAmount, client.network.denom)
-
-    return this.buildExecMessage(client.operator.botAddress, messages)
+    return this.buildRestakeMessage(address, client.operator.address, autostakeAmount, client.network.denom)
   }
 
-  async autostake(client, messages) {
-    let batchSize = client.network.data.autostake?.batchTxs || 50
-    let batches = _.chunk(_.compact(messages), batchSize)
-    if(batches.length){
-      timeStamp('Sending', messages.length, 'messages in', batches.length, 'batches of', batchSize)
-    }
-    let calls = batches.map((batch, index) => {
+  async autostake(client, grantedAddresses) {
+    const { network, health } = client
+    let batchSize = network.data.autostake?.batchTxs || 50
+    timeStamp('Calculating and autostaking in batches of', batchSize)
+
+    this.batch = []
+    this.messages = []
+    this.processed = {}
+
+    const calls = grantedAddresses.map((item, index) => {
       return async () => {
+        let messages
         try {
-          timeStamp('...batch', index + 1)
-          const memo = 'REStaked by ' + client.operator.moniker
-          const gasModifier = client.network.data.autostake?.gasModifier || 1.1
-          const gas = await client.signingClient.simulate(client.operator.botAddress, batch, memo, gasModifier);
-          await client.signingClient.signAndBroadcast(client.operator.botAddress, batch, gas, memo).then((result) => {
-            timeStamp("Successfully broadcasted");
-          }, (error) => {
-            client.health.error('Failed to broadcast:', error.message)
-          })
+          messages = await this.getAutostakeMessage(client, item)
         } catch (error) {
-          client.health.error('ERROR: Skipping batch:', error.message)
+          health.error(item.address, 'Failed to get autostake message', error.message)
         }
+        this.processed[item.address] = true
+
+        await this.sendInBatches(client, messages, batchSize, grantedAddresses.length)
       }
     })
-    await executeSync(calls, 1)
+    let querySize = network.data.autostake?.batchQueries || _.clamp(batchSize, 50)
+    await executeSync(calls, querySize)
+
+    const results = await Promise.all(this.messages)
+    const errors = results.filter(result => result.error)
+    timeStamp(`${network.prettyName} summary:`);
+    for (let [index, result] of results.entries()) {
+      timeStamp(`TX ${index + 1}:`, result.message);
+    }
+    health.complete(`${network.prettyName} finished: Sent ${results.length - errors.length}/${results.length} messages`)
+  }
+
+  async sendInBatches(client, messages, batchSize, total){
+    if (messages) {
+      this.batch = this.batch.concat(messages)
+    }
+
+    const finished = (Object.keys(this.processed).length >= total && this.batch.length > 0)
+    if (this.batch.length >= batchSize || finished) {
+      const batch = this.batch
+      this.batch = []
+
+      const messages = [...this.messages]
+      const promise = messages[messages.length - 1] || Promise.resolve()
+      const sendTx = promise.then(() => {
+        timeStamp('Sending batch', messages.length + 1)
+        return this.sendMessages(client, batch)
+      })
+      this.messages.push(sendTx)
+      return sendTx
+    }
+  }
+
+  async sendMessages(client, messages){
+    try {
+      const execMsg = this.buildExecMessage(client.operator.botAddress, messages)
+      const memo = 'REStaked by ' + client.operator.moniker
+      const gasModifier = client.network.data.autostake?.gasModifier || 1.1
+      const gas = await client.signingClient.simulate(client.operator.botAddress, [execMsg], memo, gasModifier);
+      if (this.opts.dryRun) {
+        const message = `DRYRUN: Would send ${messages.length} TXs using ${gas} gas`
+        timeStamp(message)
+        return { message }
+      } else {
+        return await client.signingClient.signAndBroadcast(client.operator.botAddress, [execMsg], gas, memo).then((response) => {
+          const message = `Sent ${messages.length} messages - ${response.transactionHash}`
+          timeStamp(message)
+          return { message }
+        }, (error) => {
+          const message = `Failed ${messages.length} messages - ${error.message}`
+          client.health.error(message)
+          return { message, error }
+        })
+      }
+    } catch (error) {
+      const message = `Failed ${messages.length} TXs: ${error.message}`
+      client.health.error(message)
+      return { message, error }
+    }
   }
 
   buildExecMessage(botAddress, messages) {
@@ -365,7 +417,6 @@ export class Autostake {
         },
         (error) => {
           timeStamp(address, "ERROR skipping this run:", error.message || error)
-          return 0
         }
       )
   }

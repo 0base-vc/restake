@@ -45,7 +45,35 @@ async function SigningClient(network, defaultGasPrice, signer, key) {
     return axios
       .get(restUrl + "/cosmos/auth/v1beta1/accounts/" + address)
       .then((res) => res.data.account)
-      .then((value) => value.BaseAccount || value.baseAccount || value.base_account || value)
+      .then((value) => {
+        // see https://github.com/chainapsis/keplr-wallet/blob/7ca025d32db7873b7a870e69a4a42b525e379132/packages/cosmos/src/account/index.ts#L73
+        // If the chain modifies the account type, handle the case where the account type embeds the base account.
+        // (Actually, the only existent case is ethermint, and this is the line for handling ethermint)
+        const baseAccount =
+          value.BaseAccount || value.baseAccount || value.base_account;
+        if (baseAccount) {
+          value = baseAccount;
+        }
+
+        // If the account is the vesting account that embeds the base vesting account,
+        // the actual base account exists under the base vesting account.
+        // But, this can be different according to the version of cosmos-sdk.
+        // So, anyway, try to parse it by some ways...
+        const baseVestingAccount =
+          value.BaseVestingAccount ||
+          value.baseVestingAccount ||
+          value.base_vesting_account;
+        if (baseVestingAccount) {
+          value = baseVestingAccount;
+
+          const baseAccount =
+            value.BaseAccount || value.baseAccount || value.base_account;
+          if (baseAccount) {
+            value = baseAccount;
+          }
+        }
+        return value 
+      })
   };
 
   function getIsNanoLedger() {
@@ -141,15 +169,18 @@ async function SigningClient(network, defaultGasPrice, signer, key) {
     const account = await getAccount(address)
     const { account_number: accountNumber, sequence } = account
     const txBodyBytes = makeBodyBytes(messages, memo)
-    if(getIsNanoLedger()){
-      // Convert to amino for ledger devices
-      const aminoMsgs = messages.map(el => aminoTypes.toAmino(el))
+    let aminoMsgs
+    try {
+      aminoMsgs = messages.map(el => aminoTypes.toAmino(el))
+    } catch { }
+    if(aminoMsgs){
+      // Sign as amino if possible for Ledger and Keplr support
       const signDoc = makeAminoSignDoc(aminoMsgs, fee, chainId, memo, accountNumber, sequence);
       const { signature, signed } = await signer.sign(address, signDoc);
       const authInfoBytes = await makeAuthInfoBytes(account, {
         amount: signed.fee.amount,
         gasLimit: signed.fee.gas,
-      })
+      }, SignMode.SIGN_MODE_LEGACY_AMINO_JSON)
       return {
         bodyBytes: txBodyBytes,
         authInfoBytes: authInfoBytes,
@@ -160,7 +191,7 @@ async function SigningClient(network, defaultGasPrice, signer, key) {
       const authInfoBytes = await makeAuthInfoBytes(account, {
         amount: fee.amount,
         gasLimit: fee.gas,
-      })
+      }, SignMode.SIGN_MODE_DIRECT)
       const signDoc = makeSignDoc(txBodyBytes, authInfoBytes, chainId, accountNumber);
       const { signature, signed } = await signer.signDirect(address, signDoc);
       return {
@@ -173,16 +204,24 @@ async function SigningClient(network, defaultGasPrice, signer, key) {
 
   async function simulate(address, messages, memo, modifier) {
     const account = await getAccount(address)
+    const fee = getFee()
     const txBody = {
       bodyBytes: makeBodyBytes(messages, memo),
-      authInfoBytes: await makeAuthInfoBytes(account, {}, SignMode.SIGN_MODE_UNSPECIFIED),
+      authInfoBytes: await makeAuthInfoBytes(account, {
+        amount: fee.amount,
+        gasLimit: fee.gas,
+      }, SignMode.SIGN_MODE_UNSPECIFIED),
       signatures: [new Uint8Array()],
     }
 
-    const estimate = await axios.post(restUrl + '/cosmos/tx/v1beta1/simulate', {
-      tx_bytes: toBase64(TxRaw.encode(txBody).finish()),
-    }).then(el => el.data.gas_info.gas_used)
-    return (parseInt(estimate * (modifier || defaultGasModifier)));
+    try {
+      const estimate = await axios.post(restUrl + '/cosmos/tx/v1beta1/simulate', {
+        tx_bytes: toBase64(TxRaw.encode(txBody).finish()),
+      }).then(el => el.data.gas_info.gas_used)
+      return (parseInt(estimate * (modifier || defaultGasModifier)));
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.message)
+    }
   }
 
   function parseTxResult(result){
@@ -207,7 +246,6 @@ async function SigningClient(network, defaultGasPrice, signer, key) {
   }
 
   async function makeAuthInfoBytes(account, fee, mode){
-    mode = mode || getIsNanoLedger() ? SignMode.SIGN_MODE_LEGACY_AMINO_JSON : SignMode.SIGN_MODE_DIRECT
     const { sequence } = account
     const accountFromSigner = (await signer.getAccounts())[0]
     if (!accountFromSigner) {
