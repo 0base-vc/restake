@@ -7,14 +7,22 @@ import Chain from './Chain.mjs'
 import CosmosDirectory from './CosmosDirectory.mjs'
 
 class Network {
-  constructor(data) {
+  constructor(data, operatorAddresses) {
     this.data = data
     this.enabled = data.enabled
     this.experimental = data.experimental
-    this.apyEnabled = data.apyEnabled
+    this.authzSupport = data.params?.authz
+    this.estimatedApr = data.params?.calculated_apr
+    this.operatorAddresses = operatorAddresses || {}
+    this.operatorCount = data.operators?.length || this.estimateOperatorCount()
+    this.apyEnabled = data.apyEnabled !== false && (!this.estimatedApr || this.estimatedApr > 0)
     this.name = data.path || data.name
+    this.path = data.path || data.name
+    this.image = data.image
+    this.prettyName = data.prettyName || data.pretty_name
     this.default = data.default
-    this.directory = CosmosDirectory()
+    this.testnet = data.testnet || data.network_type === 'testnet'
+    this.directory = CosmosDirectory(this.testnet)
 
     this.rpcUrl = this.directory.rpcUrl(this.name) // only used for Keplr suggestChain
     this.restUrl = data.restUrl || this.directory.restUrl(this.name)
@@ -27,6 +35,7 @@ class Network {
         return match(el)
       }
     })
+    this.online = !this.usingDirectory || this.connectedDirectory()
   }
 
   connectedDirectory() {
@@ -34,12 +43,26 @@ class Network {
     return apis && ['rest'].every(type => apis[type].length > 0)
   }
 
+  estimateOperatorCount() {
+    if(!this.operatorAddresses) return 0 
+    return Object.keys(this.operatorAddresses).filter(el => this.allowOperator(el)).length
+  }
+
+  allowOperator(address){
+    const allow = this.data.allowOperators
+    const block = this.data.blockOperators
+    if(allow && !allow.includes(address)) return false
+    if(block && block.includes(address)) return false
+    return true
+  }
+
   async load() {
-    this.chain = await Chain(this.data)
+    this.chain = await Chain(this.data, this.directory)
     this.validators = await this.directory.getValidators(this.name)
-    this.operators = (this.data.operators || this.validators.filter(el => el.restake)).map(el => {
+    this.operators = (this.data.operators || this.validators.filter(el => el.restake && this.allowOperator(el.operator_address))).map(el => {
       return Operator(el)
     })
+    this.operatorCount = this.operators.length
     this.prettyName = this.chain.prettyName
     this.chainId = this.chain.chainId
     this.prefix = this.chain.prefix
@@ -50,12 +73,13 @@ class Network {
     this.image = this.chain.image
     this.coinGeckoId = this.chain.coinGeckoId
     this.estimatedApr = this.chain.estimatedApr
+    this.apyEnabled = this.apyEnabled && !!this.estimatedApr && this.estimatedApr > 0
     this.authzSupport = this.chain.authzSupport
-    const defaultGasPrice = format(bignumber(multiply(0.000000025, pow(10, this.decimals))), { notation: 'fixed' }) + this.denom
-    this.gasPrice = this.data.gasPrice || defaultGasPrice
+    this.defaultGasPrice = format(bignumber(multiply(0.000000025, pow(10, this.decimals))), { notation: 'fixed' }) + this.denom
+    this.gasPrice = this.data.gasPrice || this.defaultGasPrice
     this.gasPriceStep = this.data.gasPriceStep
     this.gasPricePrefer = this.data.gasPricePrefer
-    this.gasModifier = this.data.gasModifier || 1.3
+    this.gasModifier = this.data.gasModifier || 1.5
     this.txTimeout = this.data.txTimeout || 60_000
   }
 
@@ -79,7 +103,7 @@ class Network {
       }else{
         const commission = validator.commission.commission_rates.rate
         const operator = operators.find((el) => el.address === address)
-        const periodPerYear = operator && this.chain.authzSupport ? operator.runsPerDay() * 365 : 1;
+        const periodPerYear = operator && this.chain.authzSupport ? operator.runsPerDay(this.data.maxPerDay) * 365 : 1;
         const realApr = chainApr * (1 - commission);
         const apy = (1 + realApr / periodPerYear) ** periodPerYear - 1;
         validatorApy[address] = apy;
