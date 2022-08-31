@@ -8,7 +8,8 @@
   },
   {
     "name": "juno",
-    "gasPrice": "0.0025ujuno"
+    "gasPrice": "0.0025ujuno",
+    "ownerAddress": "junovaloper19ur8r2l25qhsy9xvej5zgpuc5cpn6syydmwtrt"
   },
   {
     "name": "cosmoshub",
@@ -194,5 +195,29 @@
   {
     "name": "kujira",
     "ownerAddress": "kujiravaloper1vue5lawr3s0au9zj0aqeft5aknx6cjq6w5ghca"
+  },
+  {
+    "name": "genesisl1",
+    "txTimeout": 120000
+  },
+  {
+    "name": "tgrade",
+    "enabled": false
+  },
+  {
+    "name": "aioz",
+    "enabled": false
+  },
+  {
+    "name": "echelon",
+    "keplrFeatures": ["ibc-transfer", "ibc-go", "eth-address-gen", "eth-key-sign"]
+  },
+  {
+    "name": "kichaintestnet",
+    "testnet": true
+  },
+  {
+    "name": "passage",
+    "ownerAddress": "pasgvaloper196rujtjehu0dfc7y85lkcaps6tel76g3l9knjy"
   }
 ]

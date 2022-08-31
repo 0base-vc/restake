@@ -19,6 +19,7 @@ function NetworkFinder() {
   const params = useParams();
   const navigate = useNavigate()
   const govMatch = useMatch("/:network/govern/*");
+  const grantMatch = useMatch("/:network/grants");
 
   const networkMode = process.env.TESTNET_MODE === '1' ? 'testnet' : 'mainnet'
   const directory = getDirectory()
@@ -81,6 +82,8 @@ function NetworkFinder() {
   }
 
   function changeNetwork(network) {
+    if(!network) return
+
     setState({
       network: network,
       queryClient: network.queryClient,
@@ -90,6 +93,8 @@ function NetworkFinder() {
     });
     if (govMatch) {
       setActive('governance', network);
+    } else if(grantMatch && network.authzSupport) {
+      setActive('grants', network);
     } else {
       setActive('delegations', network);
     }
@@ -98,6 +103,9 @@ function NetworkFinder() {
   function setActive(active, network) {
     network = network || state.network;
     switch (active) {
+      case 'grants':
+        navigate("/" + network.path + '/grants');
+        break;
       case 'governance':
         navigate("/" + network.path + '/govern');
         break;
@@ -165,7 +173,7 @@ function NetworkFinder() {
   }, [govMatch, params.network])
 
   useEffect(() => {
-    if (Object.keys(state.networks).length && !state.network) {
+    if (Object.keys(state.networks).length && (!state.network || state.network.path !== params.network)) {
       let networkName = params.network
       const network = state.networks[networkName]
       if (!network) {
@@ -180,7 +188,7 @@ function NetworkFinder() {
         return network.connect().then(() => {
           if (network.connected) {
             setState({
-              active: govMatch ? 'governance' : 'delegations',
+              active: grantMatch ? 'grants' : govMatch ? 'governance' : 'delegations',
               network: network,
               queryClient: network.queryClient,
               validators: network.getValidators(),

@@ -27,7 +27,7 @@ A script is also provided which allows a validator to automatically search their
 
 Becoming an operator is extremely easy. You need to do three things:
 
-### Setup a bot wallet
+### Setup a hot wallet
 
 Generate a new hot wallet you will use to automatically carry out the staking transactions. The mnemonic will need to be provided to the script so **use a dedicated wallet and only keep enough funds for transaction fees**. The ONLY menmonic required here is for the hot wallet, do not put your validator operator mnemonic anywhere.
 
@@ -129,10 +129,12 @@ Don't forget to [update often](#updating-your-local-version)!
 
 Note: A helpful calculator for determining your REStake timer for `crontab` can be found here: https://crontab.guru/.
 
+Updated versions utilize `docker compose` instead of `docker-compose`. If you run into issues, try substituting `docker compose`.
+
 ```bash
 crontab -e
 
-0 21 * * * /bin/bash -c "cd restake && docker-compose run --rm app npm run autostake" > ./restake.log 2>&1
+0 21 * * * /bin/bash -c "cd restake && docker compose run --rm app npm run autostake" > ./restake.log 2>&1
 ```
 
 #### Using `systemd-timer`

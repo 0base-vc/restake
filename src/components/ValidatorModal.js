@@ -25,6 +25,8 @@ function ValidatorModal(props) {
   const params = useParams();
 
   useEffect(() => {
+    if(params.network !== network.name) return
+
     if (props.show && selectedValidator && validator?.operator_address === selectedValidator.operator_address && params.validator !== selectedValidator.operator_address) {
       navigate(`/${network.name}/${selectedValidator.operator_address}`)
     } else if (params.validator && props.show === false) {
@@ -53,6 +55,7 @@ function ValidatorModal(props) {
       setSelectedValidator(null)
     } else {
       props.hideModal()
+      setSelectedValidator(null)
     }
   }
 
@@ -96,6 +99,14 @@ function ValidatorModal(props) {
     return reward ? bignumber(reward.amount) : 0
   }
 
+  const commission = () => {
+    if (!props.commission) return 0;
+    const denom = network.denom;
+    const validatorCommission = props.commission[selectedValidator.address];
+    const commission = validatorCommission && validatorCommission.commission.find((el) => el.denom === denom)
+    return commission ? bignumber(commission.amount) : 0
+  }
+
   const actionText = () => {
     if (redelegate) return <span>Redelegate from <ValidatorLink validator={validator} /></span>
     if (undelegate) return 'Undelegate'
@@ -128,6 +139,7 @@ function ValidatorModal(props) {
               redelegate={redelegate}
               network={network}
               address={props.address}
+              wallet={props.wallet}
               validators={validators}
               operators={operators}
               exclude={excludeValidators()}
@@ -172,7 +184,9 @@ function ValidatorModal(props) {
               <Tab.Content>
                 <Tab.Pane eventKey="profile">
                   <ValidatorProfile
+                    theme={props.theme}
                     network={network}
+                    networks={props.networks}
                     validator={selectedValidator}
                     operator={operator()}
                     validatorApy={props.validatorApy} />
@@ -185,9 +199,11 @@ function ValidatorModal(props) {
                     validator={validator}
                     selectedValidator={selectedValidator}
                     address={props.address}
+                    wallet={props.wallet}
                     availableBalance={availableBalance()}
                     delegation={delegations[selectedValidator.operator_address]}
                     rewards={rewards()}
+                    commission={commission()}
                     validatorApy={props.validatorApy}
                     stargateClient={props.stargateClient}
                     onDelegate={onDelegate} />
@@ -196,6 +212,7 @@ function ValidatorModal(props) {
                   <Tab.Pane eventKey="restake">
                     <ValidatorGrants
                       address={props.address}
+                      wallet={props.wallet}
                       network={network}
                       operator={operator()}
                       grants={grants[operator()?.botAddress]}
