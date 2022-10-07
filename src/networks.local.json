@@ -158,6 +158,17 @@
       "https://stargaze-rpc.0base.dev"
     ]
   },
+  "teritori": {
+    "testAddress": "tori1jrjdqzxchlt09gj6qvn4ds8suxh9aqwy4hd24y",
+    "ownerAddress": "torivaloper1n3mhyp9fvcmuu8l0q8qvjy07x0rql8q4cmefrc",
+    "denom": "utori",
+    "restUrl": [
+      "https://teritori-rest.0base.dev"
+    ],
+    "rpcUrl": [
+      "https://teritori-rpc.0base.dev"
+    ]
+  },
   "terra": {
     "testAddress": "terra1knhcrmhcm4d6apcj4vglelax7sz4fm8759s6mj",
     "ownerAddress": "terravaloper12079m57cew2v02zs624zvyed5479an9wxh03fy",
