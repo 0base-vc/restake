@@ -40,8 +40,8 @@ class Network {
   }
 
   connectedDirectory() {
-    const apis = this.chain ? this.chain.data['best_apis'] : this.data['best_apis']
-    return apis && ['rest'].every(type => apis[type].length > 0)
+    const proxy_status = this.chain ? this.chain['proxy_status'] : this.data['proxy_status']
+    return proxy_status && ['rest'].every(type => proxy_status[type])
   }
 
   estimateOperatorCount() {
@@ -86,6 +86,7 @@ class Network {
     this.estimatedApr = this.chain.estimatedApr
     this.apyEnabled = data.apyEnabled !== false && !!this.estimatedApr && this.estimatedApr > 0
     this.authzSupport = this.chain.authzSupport
+    this.authzAminoSupport = this.chain.authzAminoSupport
     this.defaultGasPrice = this.decimals && format(bignumber(multiply(0.000000025, pow(10, this.decimals))), { notation: 'fixed', precision: 4}) + this.denom
     this.gasPrice = this.data.gasPrice || this.defaultGasPrice
     if(this.gasPrice){
@@ -99,11 +100,12 @@ class Network {
     this.gasPricePrefer = this.data.gasPricePrefer
     this.gasModifier = this.data.gasModifier || 1.5
     this.txTimeout = this.data.txTimeout || 60_000
+    this.keywords = this.buildKeywords()
   }
 
-  async connect() {
+  async connect(opts) {
     try {
-      this.queryClient = await QueryClient(this.chain.chainId, this.restUrl)
+      this.queryClient = await QueryClient(this.chain.chainId, this.restUrl, { connectTimeout: opts?.timeout })
       this.restUrl = this.queryClient.restUrl
       this.connected = this.queryClient.connected && (!this.usingDirectory || this.connectedDirectory())
     } catch (error) {
@@ -164,10 +166,12 @@ class Network {
 
   suggestChain(){
     const currency = {
-      coinDenom: this.display,
+      coinDenom: this.symbol,
       coinMinimalDenom: this.denom,
-      coinDecimals: this.decimals,
-      coinGeckoId: this.coinGeckoId
+      coinDecimals: this.decimals
+    }
+    if(this.coinGeckoId){
+      currency.coinGeckoId = this.coinGeckoId
     }
     const data = {
       rpc: this.rpcUrl,
@@ -193,6 +197,14 @@ class Network {
       data.features = this.data.keplrFeatures
     }
     return data
+  }
+
+  buildKeywords(){
+    return _.compact([
+      ...this.chain?.keywords || [], 
+      this.authzSupport && 'authz',
+      this.authzAminoSupport && 'full authz ledger',
+    ])
   }
 }
 

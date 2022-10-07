@@ -8,7 +8,6 @@ import {
   assertIsDeliverTxSuccess,
   GasPrice,
   AminoTypes,
-  createAuthzAminoConverters,
   createBankAminoConverters,
   createDistributionAminoConverters,
   createFreegrantAminoConverters,
@@ -25,6 +24,7 @@ import { SignMode } from "cosmjs-types/cosmos/tx/signing/v1beta1/signing.js";
 import { AuthInfo, Fee, TxBody, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx.js";
 
 import { coin } from './Helpers.mjs'
+import { createAuthzAminoConverters, createAuthzExecAminoConverters } from '../converters/Authz.mjs'
 
 function SigningClient(network, signer) {
 
@@ -32,7 +32,7 @@ function SigningClient(network, signer) {
   const { restUrl, gasModifier: defaultGasModifier, slip44: coinType, chainId } = network
 
   const registry = new Registry(defaultStargateTypes);
-  const aminoTypes = new AminoTypes({
+  const defaultConverters = {
     ...createAuthzAminoConverters(),
     ...createBankAminoConverters(),
     ...createDistributionAminoConverters(),
@@ -40,7 +40,9 @@ function SigningClient(network, signer) {
     ...createStakingAminoConverters(network.prefix),
     ...createIbcAminoConverters(),
     ...createFreegrantAminoConverters(),
-  })
+  }
+  let aminoTypes = new AminoTypes(defaultConverters)
+  aminoTypes = new AminoTypes({...defaultConverters, ...createAuthzExecAminoConverters(registry, aminoTypes)})
 
   function getAccount(address) {
     return axios
@@ -99,8 +101,7 @@ function SigningClient(network, signer) {
     const amount = ceil(bignumber(multiply(bignumber(gasPriceAmount.toString()), bignumber(gasLimit.toString()))));
     return {
       amount: [coin(amount, denom)],
-      gas: gasLimit.toString(),
-      gasLimit: gasLimit.toString()
+      gas: gasLimit.toString()
     };
   }
 
@@ -111,14 +112,17 @@ function SigningClient(network, signer) {
   }
 
   async function signAndBroadcastWithoutBalanceCheck(address, msgs, gas, memo, gasPrice) {
-    const defaultOptions = _.clone(signer.keplr.defaultOptions);
-    _.merge(signer.keplr.defaultOptions, {
-      sign: { disableBalanceCheck: true }
-    });
+    let defaultOptions
+    if(signer.keplr.defaultOptions){
+      defaultOptions = _.clone(signer.keplr.defaultOptions);
+      signer.keplr.defaultOptions = {...defaultOptions, sign: { disableBalanceCheck: true }}
+    }
     try {
       return await signAndBroadcast(address, msgs, gas, memo, gasPrice)
     } finally {
-      signer.keplr.defaultOptions = defaultOptions
+      if(defaultOptions){
+        signer.keplr.defaultOptions = defaultOptions
+      }
     }
   }
 
@@ -160,19 +164,17 @@ function SigningClient(network, signer) {
     })
     const result = parseTxResult(response.data.tx_response)
     assertIsDeliverTxSuccess(result)
-    return new Promise((resolve, reject) =>
-      pollForTx(result.transactionHash).then(
-        (value) => {
-          clearTimeout(txPollTimeout);
-          assertIsDeliverTxSuccess(value)
-          resolve(value);
-        },
-        (error) => {
-          clearTimeout(txPollTimeout);
-          reject(error);
-        },
-      ),
-    );
+    return pollForTx(result.transactionHash).then(
+      (value) => {
+        clearTimeout(txPollTimeout);
+        assertIsDeliverTxSuccess(value)
+        return value
+      },
+      (error) => {
+        clearTimeout(txPollTimeout);
+        return error
+      },
+    )
   }
 
   async function sign(address, messages, memo, fee){
@@ -181,12 +183,12 @@ function SigningClient(network, signer) {
     const txBodyBytes = makeBodyBytes(messages, memo)
     let aminoMsgs
     try {
-      aminoMsgs = messages.map(el => aminoTypes.toAmino(el))
-    } catch { }
-    if(aminoMsgs){
+      aminoMsgs = convertToAmino(messages)
+    } catch (e) { }
+    if(aminoMsgs && signer.signAmino){
       // Sign as amino if possible for Ledger and Keplr support
       const signDoc = makeAminoSignDoc(aminoMsgs, fee, chainId, memo, accountNumber, sequence);
-      const { signature, signed } = await signer.sign(address, signDoc);
+      const { signature, signed } = await signer.signAmino(address, signDoc);
       const authInfoBytes = await makeAuthInfoBytes(account, {
         amount: signed.fee.amount,
         gasLimit: signed.fee.gas,
@@ -214,7 +216,7 @@ function SigningClient(network, signer) {
 
   async function simulate(address, messages, memo, modifier) {
     const account = await getAccount(address)
-    const fee = getFee(1)
+    const fee = getFee(100_000)
     const txBody = {
       bodyBytes: makeBodyBytes(messages, memo),
       authInfoBytes: await makeAuthInfoBytes(account, {
@@ -232,6 +234,22 @@ function SigningClient(network, signer) {
     } catch (error) {
       throw new Error(error.response?.data?.message || error.message)
     }
+  }
+
+  function convertToAmino(messages){
+    return messages.map(message => {
+      if(message.typeUrl.startsWith('/cosmos.authz') && !network.authzAminoSupport){
+        throw new Error('This chain does not support amino conversion for Authz messages')
+      }
+      if(message.typeUrl === '/cosmos.authz.v1beta1.MsgExec' && network.path === 'osmosis'){
+        // Osmosis MsgExec gov is broken with Amino currently
+        // See https://github.com/osmosis-labs/cosmos-sdk/pull/342
+        if(message.value.msgs.some(msg => msg.typeUrl.startsWith('/cosmos.gov'))){
+          throw new Error('Osmosis does not support amino conversion for Authz Exec gov messages')
+        }
+      }
+      return aminoTypes.toAmino(message)
+    })
   }
 
   function parseTxResult(result){
