@@ -1,8 +1,11 @@
 import axios from "axios";
 import _ from "lodash";
 
-const QueryClient = async (chainId, restUrls) => {
-  let restUrl = await findAvailableUrl(restUrls, "rest")
+const QueryClient = async (chainId, restUrls, opts) => {
+  const config = _.merge({
+    connectTimeout: 10000,
+  }, opts)
+  const restUrl = await findAvailableUrl(restUrls, "rest", { timeout: config.connectTimeout })
 
   const getAllValidators = (pageSize, opts, pageCallback) => {
     return getAllPages((nextKey) => {
@@ -37,16 +40,17 @@ const QueryClient = async (chainId, restUrls) => {
   const getAllValidatorDelegations = (
     validatorAddress,
     pageSize,
+    opts,
     pageCallback
   ) => {
     return getAllPages((nextKey) => {
-      return getValidatorDelegations(validatorAddress, pageSize, nextKey);
+      return getValidatorDelegations(validatorAddress, pageSize, opts, nextKey);
     }, pageCallback).then((pages) => {
       return pages.map((el) => el.delegation_responses).flat();
     });
   };
 
-  const getValidatorDelegations = (validatorAddress, pageSize, nextKey) => {
+  const getValidatorDelegations = (validatorAddress, pageSize, opts, nextKey) => {
     const searchParams = new URLSearchParams();
     if (pageSize) searchParams.append("pagination.limit", pageSize);
     if (nextKey) searchParams.append("pagination.key", nextKey);
@@ -57,14 +61,15 @@ const QueryClient = async (chainId, restUrls) => {
           "/cosmos/staking/v1beta1/validators/" +
           validatorAddress +
           "/delegations?" +
-          searchParams.toString()
+          searchParams.toString(),
+          opts
       )
       .then((res) => res.data);
   };
 
-  const getBalance = (address, denom) => {
+  const getBalance = (address, denom, opts) => {
     return axios
-      .get(restUrl + "/cosmos/bank/v1beta1/balances/" + address)
+      .get(restUrl + "/cosmos/bank/v1beta1/balances/" + address, opts)
       .then((res) => res.data)
       .then((result) => {
         const balance = result.balances?.find(
@@ -137,7 +142,7 @@ const QueryClient = async (chainId, restUrls) => {
       .then((res) => res.data)
   };
 
-  const getGranteeGrants = (grantee, opts) => {
+  const getGranteeGrants = (grantee, opts, pageCallback) => {
     const { pageSize } = opts || {}
     return getAllPages((nextKey) => {
       const searchParams = new URLSearchParams();
@@ -148,12 +153,12 @@ const QueryClient = async (chainId, restUrls) => {
         .get(restUrl + "/cosmos/authz/v1beta1/grants/grantee/" + grantee + "?" +
           searchParams.toString(), opts)
         .then((res) => res.data)
-    }).then((pages) => {
+    }, pageCallback).then((pages) => {
       return pages.map(el => el.grants).flat();
     });
   };
 
-  const getGranterGrants = (granter, opts) => {
+  const getGranterGrants = (granter, opts, pageCallback) => {
     const { pageSize } = opts || {}
     return getAllPages((nextKey) => {
       const searchParams = new URLSearchParams();
@@ -164,7 +169,7 @@ const QueryClient = async (chainId, restUrls) => {
         .get(restUrl + "/cosmos/authz/v1beta1/grants/granter/" + granter + "?" +
           searchParams.toString(), opts)
         .then((res) => res.data)
-    }).then((pages) => {
+    }, pageCallback).then((pages) => {
       return pages.map(el => el.grants).flat();
     });
   };
@@ -201,13 +206,13 @@ const QueryClient = async (chainId, restUrls) => {
     do {
       const result = await getPage(nextKey);
       pages.push(result);
-      nextKey = result.pagination.next_key;
-      if (pageCallback) pageCallback(pages);
+      nextKey = result.pagination?.next_key;
+      if (pageCallback) await pageCallback(pages);
     } while (nextKey);
     return pages;
   };
 
-  async function findAvailableUrl(urls, type) {
+  async function findAvailableUrl(urls, type, opts) {
     if(!urls) return
 
     if (!Array.isArray(urls)) {
@@ -217,18 +222,31 @@ const QueryClient = async (chainId, restUrls) => {
         urls = [urls]
       }
     }
-    const path = type === "rest" ? "/blocks/latest" : "/block";
+    const path = type === "rest" ? "/cosmos/base/tendermint/v1beta1/blocks/latest" : "/block";
     return Promise.any(urls.map(async (url) => {
       url = url.replace(/\/$/, '')
       try {
-        let data = await axios.get(url + path, { timeout: 10000 })
-          .then((res) => res.data)
+        let data = await getLatestBlock(url, type, path, opts)
         if (type === "rpc") data = data.result;
         if (data.block?.header?.chain_id === chainId) {
           return url;
         }
       } catch { }
     }));
+  }
+
+  async function getLatestBlock(url, type, path, opts){
+    const { timeout } = opts || {}
+    try {
+      return await axios.get(url + path, { timeout })
+        .then((res) => res.data)
+    } catch (error) {
+      const fallback = type === 'rest' && '/blocks/latest'
+      if (fallback && fallback !== path && error.response?.status === 501) {
+        return getLatestBlock(url, type, fallback, opts)
+      }
+      throw(error)
+    }
   }
 
   return {

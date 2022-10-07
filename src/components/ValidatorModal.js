@@ -19,24 +19,30 @@ import ValidatorGrants from './ValidatorGrants';
 
 function ValidatorModal(props) {
   const { redelegate, undelegate, validator, delegations, operators, network, validators, grants } = props
-  const [selectedValidator, setSelectedValidator] = useState(!redelegate && validator);
-  const [activeTab, setActiveTab] = useState();
   const navigate = useNavigate()
   const params = useParams();
+  const [selectedValidator, setSelectedValidator] = useState(!redelegate && validator);
+  const [activeTab, setActiveTab] = useState(params.section);
 
   useEffect(() => {
     if(params.network !== network.name) return
 
-    if (props.show && selectedValidator && validator?.operator_address === selectedValidator.operator_address && params.validator !== selectedValidator.operator_address) {
-      navigate(`/${network.name}/${selectedValidator.operator_address}`)
+    const shouldShow = props.show && selectedValidator && validator?.operator_address === selectedValidator.operator_address
+    const shouldChangeValidator = params.validator !== selectedValidator?.operator_address
+    const shouldChangeTab = activeTab === 'profile' ? !!params.section : params.section !== activeTab
+    const shouldChangeUrl = shouldShow && (shouldChangeValidator || shouldChangeTab)
+    if (shouldChangeUrl) {
+      navigate(`/${network.name}/${selectedValidator.operator_address}${activeTab === 'profile' ? '' : `/${activeTab}`}`)
     } else if (params.validator && props.show === false) {
       navigate(`/${network.name}`)
     }
-  }, [props.show, params.validator, selectedValidator])
+  }, [props.show, params.validator, params.section, activeTab, selectedValidator])
 
   useEffect(() => {
     if (props.activeTab && props.activeTab != activeTab) {
       setActiveTab(props.activeTab)
+    } else if (params.section && params.section != activeTab) {
+      setActiveTab(params.section)
     } else if (redelegate || undelegate) {
       setActiveTab('delegate')
     } else if (!activeTab) {
@@ -165,7 +171,7 @@ function ValidatorModal(props) {
                     <Nav.Link role="button" eventKey="restake">REStake</Nav.Link>
                   </Nav.Item>
                 )}
-                {network.authzSupport && operator() && (
+                {network.authzSupport && !network.authzAminoSupport && operator() && (
                   <Nav.Item>
                     <Nav.Link role="button" eventKey="ledger">Ledger Instructions</Nav.Link>
                   </Nav.Item>
@@ -177,7 +183,7 @@ function ValidatorModal(props) {
                 {operator() && (
                   <option value="restake">REStake</option>
                 )}
-                {network.authzSupport && operator() && (
+                {network.authzSupport && !network.authzAminoSupport && operator() && (
                   <option value="ledger">Ledger Instructions</option>
                 )}
               </select>
@@ -205,7 +211,7 @@ function ValidatorModal(props) {
                     rewards={rewards()}
                     commission={commission()}
                     validatorApy={props.validatorApy}
-                    stargateClient={props.stargateClient}
+                    signingClient={props.signingClient}
                     onDelegate={onDelegate} />
                 </Tab.Pane>
                 {operator() && (
@@ -220,7 +226,7 @@ function ValidatorModal(props) {
                       rewards={rewards()}
                       authzSupport={props.authzSupport}
                       restakePossible={props.restakePossible}
-                      stargateClient={props.stargateClient}
+                      signingClient={props.signingClient}
                       onGrant={props.onGrant}
                       onRevoke={props.onRevoke}
                       setError={props.setError}

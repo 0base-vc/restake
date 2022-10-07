@@ -29,7 +29,7 @@ function Grants(props) {
   const [filter, setFilter] = useState({keywords: '', group: 'granter'})
   const [results, setResults] = useState([])
 
-  const isNanoLedger = props.wallet?.getIsNanoLedger()
+  const walletAuthzSupport = props.wallet?.authzSupport()
 
   useEffect(() => {
     if(!grants) return
@@ -165,7 +165,7 @@ function Grants(props) {
                   button={true}
                   size="sm"
                   grants={[grant]}
-                  stargateClient={props.stargateClient}
+                  signingClient={props.signingClient}
                   onRevoke={onRevoke}
                   setLoading={(loading) =>
                     setGrantLoading({ [grantId]: loading })
@@ -202,9 +202,9 @@ function Grants(props) {
   const alerts = (
     <>
       {!props.grantQuerySupport && (
-        <AlertMessage variant="warning">This network doesn't fully support this feature just yet. <span role="button" className="text-decoration-underline" onClick={props.showFavouriteAddresses}>Save addresses</span> to see them here.</AlertMessage>
+        <AlertMessage variant="warning">Grants cannot be queried on this network yet. <span role="button" className="text-decoration-underline" onClick={props.showFavouriteAddresses}>Save addresses</span> first to see their grants.</AlertMessage>
       )}
-      {props.grantQuerySupport && isNanoLedger && (
+      {props.grantQuerySupport && !walletAuthzSupport && (
         <AlertMessage
           variant="warning"
           dismissible={false}
@@ -260,7 +260,7 @@ function Grants(props) {
           </div>
           <div className="flex-fill d-flex justify-content-end">
             <Button variant="primary" disabled={!wallet?.hasPermission(address, 'Grant')} onClick={() => setShowModal(true)}>
-              {address && !isNanoLedger ? 'New Grant' : 'CLI/Ledger Instructions'}
+              {address && !!walletAuthzSupport ? 'New Grant' : 'CLI/Ledger Instructions'}
             </Button>
           </div>
         </div>
@@ -292,7 +292,7 @@ function Grants(props) {
         address={props.address}
         wallet={props.wallet}
         favouriteAddresses={props.favouriteAddresses}
-        stargateClient={props.stargateClient}
+        signingClient={props.signingClient}
         onHide={closeModal}
         onGrant={onGrant}
       />

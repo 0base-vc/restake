@@ -35,8 +35,8 @@ class Delegations extends React.Component {
   }
 
   async componentDidMount() {
-    const isNanoLedger = this.props.wallet?.getIsNanoLedger();
-    this.setState({ isNanoLedger: isNanoLedger });
+    const walletAuthzSupport = this.props.wallet?.authzSupport();
+    this.setState({ walletAuthzSupport });
     this.refresh(true);
 
     if (this.props.validator) {
@@ -52,9 +52,9 @@ class Delegations extends React.Component {
     if ((this.props.network !== prevProps.network && !this.props.address)
       || (this.props.address !== prevProps.address)) {
       this.clearRefreshInterval()
-      const isNanoLedger = this.props.wallet?.getIsNanoLedger();
+      const walletAuthzSupport = this.props.wallet?.authzSupport();
       this.setState({
-        isNanoLedger: isNanoLedger,
+        walletAuthzSupport: walletAuthzSupport,
         delegations: undefined, 
         rewards: undefined,
         commission: {},
@@ -297,7 +297,7 @@ class Delegations extends React.Component {
   }
 
   restakePossible() {
-    return this.props.address && !this.state.isNanoLedger && this.authzSupport();
+    return this.props.address && this.state.walletAuthzSupport && this.authzSupport();
   }
 
   totalRewards(validators) {
@@ -383,7 +383,7 @@ class Delegations extends React.Component {
         grants={this.operatorGrants()}
         authzSupport={this.authzSupport()}
         restakePossible={this.restakePossible()}
-        stargateClient={this.props.stargateClient}
+        signingClient={this.props.signingClient}
         hideModal={this.hideValidatorModal}
         onDelegate={this.onClaimRewards}
         onGrant={this.onGrant}
@@ -413,14 +413,23 @@ class Delegations extends React.Component {
         )}
         {this.authzSupport() &&
           this.props.operators.length > 0 &&
-          this.state.isNanoLedger && (
+          this.props.wallet &&
+          !this.state.walletAuthzSupport && (
             <>
               <AlertMessage
                 variant="warning"
                 dismissible={false}
               >
-                <p>Ledger devices can't send Authz transactions just yet. Full support will be enabled as soon as it is possible.</p>
-                <p className="mb-0"><span onClick={() => this.setState({ showAboutLedger: true })} role="button" className="text-reset text-decoration-underline">A manual workaround is possible using the CLI.</span></p>
+                {this.props.wallet.getIsNanoLedger() ? (
+                  <>
+                    <p>Ledger devices can't send Authz transactions on {this.props.network.prettyName} just yet. All other features are supported and Authz is coming soon.</p>
+                    <p className="mb-0"><span onClick={() => this.setState({ showAboutLedger: true })} role="button" className="text-reset text-decoration-underline">A manual workaround is possible using the CLI.</span></p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-0">This wallet can't send Authz transactions on {this.props.network.prettyName} just yet. All other features are supported, and Keplr Extension likely has support if required.</p>
+                  </>
+                )}
               </AlertMessage>
             </>
           )}
@@ -446,7 +455,7 @@ class Delegations extends React.Component {
             delegations={this.state.delegations}
             rewards={this.state.rewards}
             commission={this.state.commission}
-            stargateClient={this.props.stargateClient}
+            signingClient={this.props.signingClient}
             validatorLoading={this.state.validatorLoading}
             isLoading={this.props.wallet && (!this.state.delegations || (this.props.network?.authzSupport && !this.props.grants?.granter))}
             operatorGrants={this.operatorGrants()}
@@ -486,7 +495,7 @@ class Delegations extends React.Component {
                         address={this.props.address}
                         wallet={this.props.wallet}
                         validatorRewards={this.validatorRewards()}
-                        stargateClient={this.props.stargateClient}
+                        signingClient={this.props.signingClient}
                         onClaimRewards={this.onClaimRewards}
                         setLoading={this.setClaimLoading}
                         setError={this.setError}
@@ -497,7 +506,7 @@ class Delegations extends React.Component {
                         address={this.props.address}
                         wallet={this.props.wallet}
                         validatorRewards={this.validatorRewards()}
-                        stargateClient={this.props.stargateClient}
+                        signingClient={this.props.signingClient}
                         onClaimRewards={this.onClaimRewards}
                         setLoading={this.setClaimLoading}
                         setError={this.setError}
