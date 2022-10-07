@@ -54,6 +54,11 @@ import Favourite from './Favourite';
 import AddressModal from './AddressModal';
 import Wallet from '../utils/Wallet.mjs';
 import SendModal from './SendModal';
+import KeplrSignerProvider from '../utils/KeplrSignerProvider.mjs';
+import FalconSignerProvider from '../utils/FalconSignerProvider.mjs';
+import LeapSignerProvider from '../utils/LeapSignerProvider.mjs';
+import KeplrMobileSignerProvider from '../utils/KeplrMobileSignerProvider.mjs';
+import ConnectWalletModal from './ConnectWalletModal';
 
 class App extends React.Component {
   constructor(props) {
@@ -64,9 +69,28 @@ class App extends React.Component {
       favourites: favouriteJson ? JSON.parse(favouriteJson) : [],
       favouriteAddresses: favouriteAddressJson ? JSON.parse(favouriteAddressJson) : {}
     }
-    this.connect = this.connect.bind(this);
+    this.signerProviders = [
+      new KeplrSignerProvider(window.keplr),
+      // new KeplrMobileSignerProvider({
+      //   connectModal: {
+      //     open: (uri, callback) => {
+      //       this.setState({ 
+      //         connectWallet: true, 
+      //         qrCodeUri: uri || this.state.qrCodeUri, 
+      //         qrCodeCallback: callback || this.state.qrCodeCallback 
+      //       })
+      //     },
+      //     close: () => {
+      //       this.setState({ connectWallet: false })
+      //     }
+      //   }
+      // }),
+      new LeapSignerProvider(window.leap),
+      // new FalconSignerProvider(window.falcon)
+    ]
+    this.signerConnectors = {}
+    this.connectAuto = this.connectAuto.bind(this);
     this.disconnect = this.disconnect.bind(this);
-    this.connectKeplr = this.connectKeplr.bind(this);
     this.showNetworkSelect = this.showNetworkSelect.bind(this);
     this.getBalance = this.getBalance.bind(this);
     this.onSend = this.onSend.bind(this);
@@ -78,18 +102,20 @@ class App extends React.Component {
   }
 
   async componentDidMount() {
-    this.connectKeplr()
-    window.addEventListener("load", this.connectKeplr)
-    window.addEventListener("keplr_keystorechange", this.connect)
+    this.connect()
+    window.addEventListener("load", this.connectAuto)
+    this.signerProviders.forEach(provider => {
+      const connector = (event) => this.connectAuto(event, provider.key)
+      this.signerConnectors[provider.key] = connector
+      window.addEventListener(provider.keychangeEvent, connector)
+    })
   }
 
   async componentDidUpdate(prevProps, prevState) {
     if (!this.props.network) return
 
-    if (this.state.keplr != prevState.keplr) {
-      this.connect()
-    } else if (this.props.network !== prevProps.network) {
-      this.setState({ balance: undefined, address: undefined, wallet: undefined, grants: undefined })
+    if (this.props.network !== prevProps.network) {
+      this.setState({ balance: undefined, address: undefined, wallet: undefined, grants: undefined, error: undefined })
       this.connect()
     }else if(this.state.address !== prevState.address){
       this.clearRefreshInterval()
@@ -108,8 +134,10 @@ class App extends React.Component {
 
   componentWillUnmount() {
     this.clearRefreshInterval()
-    window.removeEventListener("load", this.connectKeplr)
-    window.removeEventListener("keplr_keystorechange", this.connect)
+    window.removeEventListener("load", this.connectAuto)
+    this.signerProviders.forEach(provider => {
+      window.removeEventListener(provider.keychangeEvent, this.signerConnectors[provider.key])
+    })
   }
 
   showNetworkSelect() {
@@ -120,93 +148,95 @@ class App extends React.Component {
     return this.props.network?.connected
   }
 
-  connectKeplr() {
-    if (this.state.keplr && !window.keplr) {
-      this.setState({ keplr: false })
-    } else if (!this.state.keplr && window.keplr) {
-      this.setState({ keplr: true })
-    }
+  getSignerProvider(providerKey){
+    return providerKey && this.signerProviders.find(el => el.key === providerKey)
   }
 
   disconnect() {
     localStorage.removeItem('connected')
+    this.state.signerProvider?.disconnect()
     this.setState({
       address: null,
       balance: null,
       wallet: null,
-      stargateClient: null
+      signingClient: null,
+      signerProvider: null
     })
   }
 
-  async connect(manual) {
+  connectAuto(event, providerKey){
+    return this.connect(providerKey)
+  }
+
+  async connect(providerKey, manual) {
     if (this.props.network && !this.connected()) {
       return this.setState({
         error: 'Could not connect to any available API servers'
       })
     }
 
-    if (manual && !this.state.keplr) {
+    let storedKey = localStorage.getItem('connected')
+    if(storedKey === '1'){ // deprecate
+      storedKey = 'keplr'
+      localStorage.setItem('connected', storedKey)
+    }
+
+    const signerProvider = this.getSignerProvider(providerKey || storedKey)
+
+    if(!signerProvider) return
+
+    providerKey = signerProvider.key
+
+    if (manual && !signerProvider.available()) {
       return this.setState({
-        keplrError: true
+        providerError: providerKey
       })
     }
 
-    if (localStorage.getItem('connected') !== '1') {
-      if (manual) {
-        localStorage.setItem('connected', '1')
-      } else {
-        return
-      }
-    }
-
     const { network } = this.props
-    if (!network) return
+    if (!network || !signerProvider.available()) return
 
-    const chainId = network.chainId
+    if (!manual && (providerKey !== storedKey || !signerProvider.connected())) {
+      return
+    }
 
+    this.setState({ signerProvider })
+
+    let key
     try {
-      if (window.keplr) {
-        if (network.gasPricePrefer) {
-          window.keplr.defaultOptions = {
-            sign: { preferNoSetFee: true }
-          }
-        }
-        await window.keplr.enable(chainId);
-      }
+      key = await signerProvider.connect(network);
     } catch (e) {
-      console.log(e.message, e)
-      await this.suggestChain(network)
+      return this.setState({
+        error: `Failed to connect to ${signerProvider?.label || 'signer'}: ${e.message}`,
+        address: null,
+        wallet: null,
+        signingClient: null
+      })
     }
-    if (window.getOfflineSigner) {
-      try {
-        const offlineSigner = await window.getOfflineSignerAuto(chainId)
-        const key = await window.keplr.getKey(chainId);
-        const wallet = new Wallet(network, offlineSigner, key)
-        const stargateClient = wallet.signingClient
-        stargateClient.registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant)
-        stargateClient.registry.register("/cosmos.authz.v1beta1.MsgRevoke", MsgRevoke)
+    try {
+      const offlineSigner = await signerProvider.getSigner(network)
+      const wallet = new Wallet(network, offlineSigner, key)
+      const signingClient = wallet.signingClient()
+      signingClient.registry.register("/cosmos.authz.v1beta1.MsgGrant", MsgGrant)
+      signingClient.registry.register("/cosmos.authz.v1beta1.MsgRevoke", MsgRevoke)
 
-        const address = await wallet.getAddress();
+      const address = await wallet.getAddress();
 
-        this.setState({
-          address: address,
-          wallet: wallet,
-          stargateClient: stargateClient,
-          error: false
-        })
-      } catch (e) {
-        console.log(e)
-        return this.setState({
-          error: 'Failed to connect to signer: ' + e.message
-        })
-      }
+      localStorage.setItem('connected', providerKey)
+      this.setState({
+        address,
+        wallet,
+        signingClient,
+        error: false,
+        qrCodeUri: null,
+        qrCodeCallback: null
+      })
+    } catch (e) {
+      console.log(e)
+      return this.setState({
+        error: `Failed to connect to ${signerProvider?.label || 'signer'}: ${e.message}`
+      })
     }
-  }
-
-  suggestChain(network) {
-    if (!window.keplr) return
-
-    return window.keplr.experimentalSuggestChain(network.suggestChain())
   }
 
   refreshInterval() {
@@ -613,7 +643,7 @@ class App extends React.Component {
                           ) : (
                             <select className="form-select form-select-sm d-none d-lg-block ms-2" aria-label="Address" value={this.state.address || ''} onChange={(e) => this.setState({ address: e.target.value })}>
                               {this.state.wallet ? (
-                                <optgroup label="Wallet">
+                                <optgroup label={this.state.signerProvider.label}>
                                   <option value={this.state.wallet.address}>{this.state.wallet.name || this.state.wallet.address}</option>
                                 </optgroup>
                               ) : (
@@ -680,17 +710,15 @@ class App extends React.Component {
                                 </Dropdown.Item>
                               </>
                             ) : (
-                              <>
-                                <Dropdown.Item as="button" onClick={() => this.connect(true)} disabled={!window.keplr}>Connect Keplr Extension</Dropdown.Item>
-                                {/* <Dropdown.Item onClick={() => this.connect(true)} disabled={!window.falcon}>Connect Falcon Wallet</Dropdown.Item> */}
-                              </>
-
+                              this.signerProviders.map(provider => {
+                                return <Dropdown.Item as="button" key={provider.key} onClick={() => this.connect(provider.key, true)} disabled={!provider.available()}>Connect {provider.label}</Dropdown.Item>
+                              })
                             )}
                             <Dropdown.Item as="button" onClick={() => this.setState({ showAddressModal: true })}>Saved Addresses</Dropdown.Item>
                             {this.state.address && (
                               <>
                                 <Dropdown.Divider />
-                                <Dropdown.Item as="button" onClick={this.disconnect}>Disconnect</Dropdown.Item>
+                                <Dropdown.Item as="button" onClick={this.disconnect}>Disconnect {this.state.signerProvider?.label}</Dropdown.Item>
                               </>
                             )}
                           </Dropdown.Menu>
@@ -710,8 +738,8 @@ class App extends React.Component {
             </AlertMessage>
           )}
           <AlertMessage message={this.state.error} variant="danger" dismissible={false} />
-          {!this.state.keplr && this.state.keplrError && (
-            <AlertMessage variant="warning" dismissible={true} onClose={() => this.setState({ keplrError: false })}>
+          {!this.state.providerError === 'keplr' && (
+            <AlertMessage variant="warning" dismissible={true} onClose={() => this.setState({ providerError: false })}>
               Please install the <a href="https://chrome.google.com/webstore/detail/keplr/dmkamcknogkgcdfhhbddcghachkejeap?hl=en" target="_blank" rel="noreferrer">Keplr browser extension</a> using desktop Google Chrome.<br />WalletConnect and mobile support is coming soon.
             </AlertMessage>
           )}
@@ -739,7 +767,7 @@ class App extends React.Component {
                 onGrant={this.onGrant}
                 onRevoke={this.onRevoke}
                 queryClient={this.props.queryClient}
-                stargateClient={this.state.stargateClient} />
+                signingClient={this.state.signingClient} />
             </>
           }
           {this.props.active === 'governance' && (
@@ -749,7 +777,7 @@ class App extends React.Component {
               wallet={this.state.wallet}
               favouriteAddresses={this.favouriteAddresses()}
               queryClient={this.props.queryClient}
-              stargateClient={this.state.stargateClient} />
+              signingClient={this.state.signingClient} />
           )}
           {this.props.active === 'grants' && this.state.address && this.props.network.authzSupport && (
             <Grants
@@ -766,7 +794,7 @@ class App extends React.Component {
               onRevoke={this.onRevoke}
               queryClient={this.props.queryClient}
               grantQuerySupport={this.state.grantQuerySupport}
-              stargateClient={this.state.stargateClient} />
+              signingClient={this.state.signingClient} />
           )}
           <hr />
           <p className="mt-5 text-center">
@@ -819,6 +847,13 @@ class App extends React.Component {
           updateFavouriteAddresses={this.updateFavouriteAddresses}
           setAddress={(value) => this.setState({address: value, showAddressModal: false})}
         />
+        <ConnectWalletModal 
+          show={this.state.connectWallet} 
+          signerProvider={this.state.signerProvider} 
+          uri={this.state.qrCodeUri} 
+          callback={this.state.qrCodeCallback} 
+          onClose={() => this.setState({connectWallet: false})} 
+        />
         {this.props.network && (
           <SendModal
             show={this.state.showSendModal}
@@ -827,7 +862,7 @@ class App extends React.Component {
             wallet={this.state.wallet}
             balance={this.state.balance}
             favouriteAddresses={this.favouriteAddresses()}
-            stargateClient={this.state.stargateClient}
+            signingClient={this.state.signingClient}
             onHide={() => this.setState({ showSendModal: false })}
             onSend={this.onSend}
           />
